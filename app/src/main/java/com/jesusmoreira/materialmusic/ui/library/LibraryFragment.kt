@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.home
+package com.jesusmoreira.materialmusic.ui.library
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,20 +10,20 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.jesusmoreira.materialmusic.R
 
-class HomeFragment : Fragment() {
+class LibraryFragment : Fragment() {
 
-    private lateinit var homeViewModel: HomeViewModel
+    private lateinit var libraryViewModel: LibraryViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        homeViewModel =
-            ViewModelProviders.of(this).get(HomeViewModel::class.java)
-        val root = inflater.inflate(R.layout.fragment_home, container, false)
+        libraryViewModel =
+            ViewModelProviders.of(this).get(LibraryViewModel::class.java)
+        val root = inflater.inflate(R.layout.fragment_library, container, false)
         val textView: TextView = root.findViewById(R.id.text_home)
-        homeViewModel.text.observe(this, Observer {
+        libraryViewModel.text.observe(this, Observer {
             textView.text = it
         })
         return root
