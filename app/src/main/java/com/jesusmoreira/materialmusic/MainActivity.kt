@@ -1,15 +1,21 @@
 package com.jesusmoreira.materialmusic
 
 import android.os.Bundle
+import android.view.View
+import android.widget.FrameLayout
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import androidx.appcompat.app.AppCompatActivity
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
-import com.jesusmoreira.materialmusic.controllers.SongController
+import com.jesusmoreira.materialmusic.controllers.AudioController
+import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.ui.library.SongsTabFragment
+import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
+import kotlinx.android.synthetic.main.activity_main.*
 
-class MainActivity : AppCompatActivity() {
+class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInteractionListener {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -26,7 +32,11 @@ class MainActivity : AppCompatActivity() {
         )
         setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
+    }
 
-        val songs = SongController(this).getSongs()
+    override fun onSongClicked(item: Audio?) {
+        val playerView: FrameLayout = findViewById(R.id.player_fragment)
+        supportFragmentManager.beginTransaction().replace(R.id.player_fragment, PlayerFragment.newInstance(item)).commit()
+        playerView.visibility = View.VISIBLE
     }
 }
