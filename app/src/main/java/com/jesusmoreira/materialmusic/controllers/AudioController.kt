@@ -56,7 +56,7 @@ class AudioController(private val context: Context) {
                         cursor
                             .getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST)
                     )
-                    music.artistId = cursor.getString(
+                    music.artistId = cursor.getLong(
                         cursor
                             .getColumnIndexOrThrow(MediaStore.Audio.Media.ARTIST_ID)
                     )
@@ -70,7 +70,7 @@ class AudioController(private val context: Context) {
                         cursor
                             .getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM)
                     )
-                    music.albumId = cursor.getString(
+                    music.albumId = cursor.getLong(
                         cursor
                             .getColumnIndexOrThrow(MediaStore.Audio.Media.ALBUM_ID)
                     )

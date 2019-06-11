@@ -47,7 +47,7 @@ class SongsTabFragment : Fragment() {
                     columnCount <= 1 -> LinearLayoutManager(context)
                     else -> GridLayoutManager(context, columnCount)
                 }
-                adapter = SongRecyclerViewAdapter(AudioController(context).getMusicList(), listener)
+                adapter = SongRecyclerViewAdapter(context, AudioController(context).getMusicList(), listener)
             }
         }
         return view
@@ -79,8 +79,7 @@ class SongsTabFragment : Fragment() {
      * for more information.
      */
     interface OnSongListFragmentInteractionListener {
-        // TODO: Update argument type and name
-        fun onSongClicked(item: Audio?)
+        fun onSongClicked(item: Audio)
     }
 
     companion object {

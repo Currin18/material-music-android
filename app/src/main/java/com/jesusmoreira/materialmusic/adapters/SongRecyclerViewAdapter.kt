@@ -1,9 +1,11 @@
 package com.jesusmoreira.materialmusic.adapters
 
+import android.content.Context
 import androidx.recyclerview.widget.RecyclerView
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Audio
@@ -18,6 +20,7 @@ import kotlinx.android.synthetic.main.fragment_song_list_item.view.*
  * specified [OnSongListFragmentInteractionListener].
  */
 class SongRecyclerViewAdapter(
+    private val context: Context,
     private val mValues: List<Audio>,
     private val mListener: OnSongListFragmentInteractionListener?
 ) : RecyclerView.Adapter<SongRecyclerViewAdapter.ViewHolder>() {
@@ -44,6 +47,8 @@ class SongRecyclerViewAdapter(
         holder.titleView.text = item.title
         holder.artistView.text = item.artist
 
+//        holder.albumArtView.setImageURI(item.getURI())
+
         with(holder.mView) {
             tag = item
             setOnClickListener(mOnClickListener)
@@ -55,6 +60,7 @@ class SongRecyclerViewAdapter(
     inner class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
         val titleView: TextView = mView.title
         val artistView: TextView = mView.artist
+        val albumArtView: ImageView = mView.image
 
         override fun toString(): String {
             return super.toString() + " '" + titleView.text + "'"
