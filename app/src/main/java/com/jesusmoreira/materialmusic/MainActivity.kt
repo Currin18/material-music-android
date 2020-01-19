@@ -23,6 +23,7 @@ import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
 import com.mtechviral.mplaylib.MusicFinder
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
+import org.jetbrains.anko.custom.async
 
 class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInteractionListener {
 
@@ -72,8 +73,9 @@ class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInt
             songFinder.allSongs
         }
 
-        launch(kotlinx.coroutines.android.UI) {
-            songs = songsJob.await()
+
+//        launch(kotlinx.coroutines.android.UI) {
+//            songs = songsJob.await()
 
 //            val playerUI = object: AnkoComponent<MainActivity> {
 //                override fun createView(ui: AnkoContext<MainActivity>) = with(ui) {
@@ -122,7 +124,7 @@ class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInt
 //                    }
 //                }
 //            }
-        }
+//        }
     }
 
     override fun onDestroy() {
