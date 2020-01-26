@@ -3,20 +3,15 @@ package com.jesusmoreira.materialmusic.controllers
 import android.app.Service
 import android.content.Context
 import android.content.Intent
+import android.media.AudioAttributes
+import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.os.Binder
-import android.os.IBinder
-import androidx.core.content.ContextCompat.getSystemService
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import android.media.AudioAttributes
-import java.io.IOException
-import androidx.core.content.ContextCompat.getSystemService
-import android.icu.lang.UCharacter.GraphemeClusterBreak.T
-import android.media.AudioFocusRequest
 import android.os.Build
+import android.os.IBinder
 import android.util.Log
-import java.lang.NullPointerException
+import java.io.IOException
 
 
 class MediaPlayerService : Service(),
@@ -76,7 +71,7 @@ class MediaPlayerService : Service(),
 
     private fun playMedia() {
         mediaPlayer?.let {
-            if (it.isPlaying) it.start()
+            if (!it.isPlaying) it.start()
         }
     }
 

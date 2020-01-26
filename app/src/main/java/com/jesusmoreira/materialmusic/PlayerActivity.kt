@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.splash
+package com.jesusmoreira.materialmusic
 
 import android.content.ComponentName
 import android.content.Context
@@ -7,19 +7,18 @@ import android.content.ServiceConnection
 import android.os.Bundle
 import android.os.IBinder
 import android.widget.Toast
-import com.google.android.material.snackbar.Snackbar
 import androidx.appcompat.app.AppCompatActivity
-import com.jesusmoreira.materialmusic.MainActivity
-import com.jesusmoreira.materialmusic.R
 
-import kotlinx.android.synthetic.main.activity_splash.*
+import kotlinx.android.synthetic.main.activity_player.*
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
+import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
 
 
-
-class SplashActivity : AppCompatActivity() {
+class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
 
     companion object {
+        const val SERVICE_STATE: String = "ServiceState"
+
         private var player: MediaPlayerService? = null
         var serviceBound = false
 
@@ -29,14 +28,14 @@ class SplashActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_splash)
+        setContentView(R.layout.activity_player)
         setSupportActionBar(toolbar)
 
-        fab.setOnClickListener { view ->
-//            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
-//                .setAction("Action", null).show()
-            playAudio("https://upload.wikimedia.org/wikipedia/commons/6/6c/Grieg_Lyric_Pieces_Kobold.ogg")
-        }
+//        fab.setOnClickListener { view ->
+////            Snackbar.make(view, "Replace with your own action", Snackbar.LENGTH_LONG)
+////                .setAction("Action", null).show()
+//            playAudio("https://upload.wikimedia.org/wikipedia/commons/6/6c/Grieg_Lyric_Pieces_Kobold.ogg")
+//        }
 
         serviceConnection = object: ServiceConnection {
             override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
@@ -45,16 +44,32 @@ class SplashActivity : AppCompatActivity() {
                 player = binder.getService()
                 serviceBound = true
 
-                Toast.makeText(this@SplashActivity, "Service Bound", Toast.LENGTH_SHORT).show()
+                Toast.makeText(this@PlayerActivity, "Service Bound", Toast.LENGTH_SHORT).show()
             }
 
             override fun onServiceDisconnected(name: ComponentName?) {
                 serviceBound = false
             }
         }
+    }
 
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(SERVICE_STATE, serviceBound)
+        super.onSaveInstanceState(outState)
+    }
 
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        serviceBound = savedInstanceState.getBoolean(SERVICE_STATE)
+    }
 
+    override fun onDestroy() {
+        super.onDestroy()
+        if (serviceBound) {
+            serviceConnection?.let{ unbindService(it)}
+            // service is active
+            player?.stopSelf()
+        }
     }
 
     private fun playAudio(media: String) {
@@ -63,11 +78,18 @@ class SplashActivity : AppCompatActivity() {
             val playerIntent = Intent(this, MediaPlayerService::class.java)
             playerIntent.putExtra("media", media)
             startService(playerIntent)
-            serviceConnection?.let { bindService(playerIntent, it, Context.BIND_AUTO_CREATE) }
+            serviceConnection?.let {
+                bindService(playerIntent, it, Context.BIND_AUTO_CREATE)
+            }
         } else {
+            Toast.makeText(this@PlayerActivity, "", Toast.LENGTH_SHORT)
             // Service is active
             // Send media with BroadcastReceiver
         }
+    }
+
+    override fun onPlayOrPause() {
+        playAudio("https://upload.wikimedia.org/wikipedia/commons/6/6c/Grieg_Lyric_Pieces_Kobold.ogg")
     }
 
 }

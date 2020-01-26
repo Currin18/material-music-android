@@ -19,7 +19,7 @@ import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.ui.library.SongsTabFragment
-import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
+//import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
 import com.mtechviral.mplaylib.MusicFinder
 import kotlinx.coroutines.async
 import kotlinx.coroutines.launch
@@ -141,7 +141,7 @@ class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInt
 
     override fun onSongClicked(item: Audio) {
         val playerView: FrameLayout = findViewById(R.id.player_fragment)
-        supportFragmentManager.beginTransaction().replace(R.id.player_fragment, PlayerFragment.newInstance(item)).commit()
+        //supportFragmentManager.beginTransaction().replace(R.id.player_fragment, PlayerFragment.newInstance(item)).commit()
         playerView.visibility = View.VISIBLE
 
 //        songs?.get(0)?.let { startSong(it) }
