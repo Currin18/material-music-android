@@ -13,6 +13,7 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Toast
+import com.google.gson.Gson
 import com.jesusmoreira.materialmusic.PlayerActivity
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
@@ -29,53 +30,69 @@ import org.jetbrains.anko.imageResource
 class PlayerFragment : Fragment() {
 
     companion object {
-        const val SERVICE_STATE: String = "ServiceState"
+        private const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
+        private const val ARG_AUDIO_INDEX: String = "ARG_AUDIO_INDEX"
+        private const val ARG_PLAY: String = "ARG_PLAY"
 
         const val PLAY: String = "com.jesusmoreira.materialmusic.PlayerActivity.PLAY"
         const val PAUSE: String = "com.jesusmoreira.materialmusic.PlayerActivity.PAUSE"
+        const val STOP: String = "com.jesusmoreira.materialmusic.PlayerActivity.STOP"
         const val PREVIOUS: String = "com.jesusmoreira.materialmusic.PlayerActivity.PREVIOUS"
         const val NEXT: String = "com.jesusmoreira.materialmusic.PlayerActivity.NEXT"
 
-        fun onNewInstance(audioList: ArrayList<Audio>, audioIndex: Int): PlayerFragment {
-            // TODO: add audioList
-            return PlayerFragment()
+        fun newInstance(audioList: ArrayList<Audio>, audioIndex: Int, play: Boolean): PlayerFragment {
+            val args = Bundle()
+            args.putString(ARG_AUDIO_LIST, Gson().toJson(audioList))
+            args.putInt(ARG_AUDIO_INDEX, audioIndex)
+            args.putBoolean(ARG_PLAY, play)
+
+            val fragment = PlayerFragment()
+            fragment.arguments = args
+
+            return fragment
         }
     }
 
     var listener: PlayerListener? = null
 
-    private var player: MediaPlayerService? = null
-
-    var audioList: ArrayList<Audio>? = arrayListOf()
+    var audioList: ArrayList<Audio>? = null
     var audioIndex: Int = 0
 
     var isPlaying: Boolean? = null
-
-    // Binding this Client to AudioPlayer Service
-    private val serviceConnection : ServiceConnection = object: ServiceConnection {
-        override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-            // We've bound to LocalService, cast the IBinder and get LocalService instance
-            val binder : MediaPlayerService.LocalBinder = service as MediaPlayerService.LocalBinder
-            player = binder.getService()
-            listener?.setServiceBoundState(true)
-
-            Toast.makeText(context, "Service Bound", Toast.LENGTH_SHORT).show()
-        }
-
-        override fun onServiceDisconnected(name: ComponentName?) {
-            listener?.setServiceBoundState(false)
-        }
-    }
+    var isMinimized: Boolean = false
 
     private val updaterPlayButton: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != null) {
-                if (intent.action.equals(PLAY)) {
-                    isPlaying = true
-                    playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
-                } else if (intent.action.equals(PAUSE)) {
-                    isPlaying = false
-                    playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+                when {
+                    intent.action.equals(PLAY) -> {
+                        isPlaying = true
+                        playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+                    }
+                    intent.action.equals(PAUSE) -> {
+                        isPlaying = false
+                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+                    }
+                    intent.action.equals(PAUSE) -> {
+                        isPlaying = null
+                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+                    }
+                    intent.action.equals(PREVIOUS) -> {
+                        audioList?.let {
+                            audioIndex = when (audioIndex) {
+                                0 -> it.size
+                                else -> --audioIndex
+                            }
+                        }
+                    }
+                    intent.action.equals(NEXT) -> {
+                        audioList?.let {
+                            audioIndex = when (audioIndex) {
+                                it.size -> 0
+                                else -> --audioIndex
+                            }
+                        }
+                    }
                 }
             }
         }
@@ -84,24 +101,36 @@ class PlayerFragment : Fragment() {
     interface PlayerListener {
         fun setServiceBoundState(serviceBoundState: Boolean)
         fun getServiceBoundState(): Boolean
+        fun bindService(service: Intent, flags: Int)
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
 
-        loadAudio()
+        arguments?.getString(ARG_AUDIO_LIST)?.let {
+            audioList = Gson().fromJson(
+                it,
+                object : com.google.gson.reflect.TypeToken<ArrayList<Audio>?>() {}.type
+            )
+        }
+        arguments?.getInt(ARG_AUDIO_INDEX)?.let { audioIndex = it }
+        val play = arguments?.getBoolean(ARG_PLAY)
+
+        if (play == true) {
+            onPlayOrPause()
+        } else {
+            isMinimized = true
+        }
+    }
+
+    override fun onResume() {
+        super.onResume()
         startBroadcast()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        listener?.let {
-            if (it.getServiceBoundState()) {
-                serviceConnection.let { context?.unbindService(it) }
-                // service is active
-                player?.stopSelf()
-            }
-        }
+        context?.unregisterReceiver(updaterPlayButton)
     }
 
     override fun onCreateView(
@@ -109,6 +138,18 @@ class PlayerFragment : Fragment() {
         savedInstanceState: Bundle?
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_player, container, false)
+
+        view.bigPlayer.visibility = View.GONE
+        view.smallPlayer.visibility = View.GONE
+
+        audioList?.let {
+            if (isMinimized) {
+                view.smallPlayer.visibility = View.VISIBLE
+            } else {
+                view.bigPlayer.visibility = View.VISIBLE
+            }
+        }
+
         view.playOrPause.setOnClickListener {
             onPlayOrPause()
         }
@@ -144,11 +185,8 @@ class PlayerFragment : Fragment() {
                 storage.storeAudioIndex(audioIndex)
 
                 val playerIntent = Intent(context, MediaPlayerService::class.java)
-//            playerIntent.putExtra("media", media)
                 context.startService(playerIntent)
-                serviceConnection.let {
-                    context.bindService(playerIntent, it, Context.BIND_AUTO_CREATE)
-                }
+                listener?.bindService(playerIntent, Context.BIND_AUTO_CREATE)
             } else {
                 Toast.makeText(context, "Player Activity", Toast.LENGTH_SHORT).show()
                 // Store the new audioIndex to SharedPreferences
@@ -163,39 +201,18 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    private fun loadAudio() {
-        val contentResolver: ContentResolver? = context?.contentResolver
-        val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
-        val cursor: Cursor? = contentResolver?.query(uri, null, selection, null, sortOrder)
-
-        cursor?.let {
-            if (it.count > 0) {
-                audioList = arrayListOf()
-                while (cursor.moveToNext()) {
-                    audioList?.add(Audio(cursor))
-                }
-            }
-            it.close()
-        }
-    }
-
     private fun onPlayOrPause() {
         isPlaying = when(isPlaying) {
             true -> {
-                playOrPause.imageResource = R.drawable.ic_play_arrow_white_24dp
                 launchIntentToPlayer(MediaPlayerService.ACTION_PAUSE)
                 false
             }
             false -> {
-                playOrPause.imageResource = R.drawable.ic_pause_white_24dp
                 launchIntentToPlayer(MediaPlayerService.ACTION_PLAY)
                 true
             }
             else -> {
                 playAudio(audioIndex)
-                playOrPause.imageResource = R.drawable.ic_pause_white_24dp
                 true
             }
         }

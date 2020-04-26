@@ -11,25 +11,21 @@ import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
 import android.media.session.MediaSessionManager
-import android.net.Uri
-import android.os.Binder
-import android.os.Build
-import android.os.IBinder
-import android.os.RemoteException
+import android.os.*
 import android.support.v4.media.MediaMetadataCompat
 import android.support.v4.media.session.MediaControllerCompat
 import android.support.v4.media.session.MediaSessionCompat
 import android.telephony.PhoneStateListener
 import android.telephony.TelephonyManager
 import android.util.Log
-import com.jesusmoreira.materialmusic.PlayerActivity
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.models.PlaybackStatus
+import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
 import com.jesusmoreira.materialmusic.utils.NotificationUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import java.io.IOException
-import java.util.*
+import java.util.concurrent.TimeUnit
 import kotlin.collections.ArrayList
 
 
@@ -165,9 +161,9 @@ class MediaPlayerService : Service(),
 
             override fun onStop() {
                 super.onStop()
+                stopMedia()
                 NotificationUtil.removeNotification(applicationContext)
-                // Stop the service
-                stopSelf()
+
             }
 
             override fun onSeekTo(position: Long) {
@@ -240,7 +236,7 @@ class MediaPlayerService : Service(),
         mediaPlayer?.let {
             if (!it.isPlaying) {
                 it.start()
-                sendBroadcast(Intent(PlayerActivity.PLAY))
+                sendBroadcast(Intent(PlayerFragment.PLAY))
             }
         }
     }
@@ -249,7 +245,7 @@ class MediaPlayerService : Service(),
         mediaPlayer?.let {
             if (it.isPlaying){
                 it.stop()
-                sendBroadcast(Intent(PlayerActivity.PAUSE))
+                sendBroadcast(Intent(PlayerFragment.STOP))
             }
         }
     }
@@ -259,7 +255,7 @@ class MediaPlayerService : Service(),
             if (it.isPlaying) {
                 it.pause()
                 resumePosition = it.currentPosition
-                sendBroadcast(Intent(PlayerActivity.PAUSE))
+                sendBroadcast(Intent(PlayerFragment.PAUSE))
             }
         }
     }
@@ -269,7 +265,7 @@ class MediaPlayerService : Service(),
             if (!it.isPlaying) {
                 it.seekTo(resumePosition)
                 it.start()
-                sendBroadcast(Intent(PlayerActivity.PLAY))
+                sendBroadcast(Intent(PlayerFragment.PLAY))
             }
         }
     }
@@ -329,16 +325,21 @@ class MediaPlayerService : Service(),
             }
             AudioManager.AUDIOFOCUS_LOSS -> {
                 // Lost focus for an unbounded amount of time: stop playback and release media payer
-                mediaPlayer?.let {it ->
-                    if(it.isPlaying) it.stop()
-                    it.release()
-                    mediaPlayer = null
-                }
+                transportControls?.pause()
+                Handler().postDelayed(Runnable { transportControls?.stop() },
+                    TimeUnit.SECONDS.toMillis(30))
+
+//                mediaPlayer?.let {it ->
+//                    if(it.isPlaying) it.stop()
+//                    it.release()
+//                    mediaPlayer = null
+//                }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT -> {
                 // Lost focus for a short time, but we have to stop
                 // playback. We don't release the media player because playback
                 // is likely to resume
+//                transportControls?.pause()
                 mediaPlayer?.let { if (it.isPlaying) it.pause() }
             }
             AudioManager.AUDIOFOCUS_LOSS_TRANSIENT_CAN_DUCK -> {
@@ -384,22 +385,22 @@ class MediaPlayerService : Service(),
     }
 
     private fun removeAudioFocus(): Boolean {
-//        return when {
-//            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
-//                val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
-//                    setAudioAttributes(AudioAttributes.Builder().run {
-//                        setUsage(AudioAttributes.USAGE_MEDIA)
-//                        setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-//                        build()
-//                    })
-//                    setAcceptsDelayedFocusGain(true)
-//                    build()
-//                }
-//                AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioManager?.abandonAudioFocusRequest(focusRequest)
-//            }
-//            else -> AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioManager?.abandonAudioFocus(this)
-//        }
-        return true
+        // FIXME: check removeAudioFocus
+        return when {
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.O -> {
+                val focusRequest = AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN).run {
+                    setAudioAttributes(AudioAttributes.Builder().run {
+                        setUsage(AudioAttributes.USAGE_MEDIA)
+                        setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        build()
+                    })
+                    setAcceptsDelayedFocusGain(true)
+                    build()
+                }
+                AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioManager?.abandonAudioFocusRequest(focusRequest)
+            }
+            else -> AudioManager.AUDIOFOCUS_REQUEST_GRANTED == audioManager?.abandonAudioFocus(this)
+        }
     }
 
     // The system call this method when an activity, requests the service be started
@@ -471,7 +472,7 @@ class MediaPlayerService : Service(),
             stopMedia()
             it.release()
         }
-        removeAudioFocus()
+//        removeAudioFocus()
 
         //Disable the PhoneStateListener
         if (phoneStateListener != null) {

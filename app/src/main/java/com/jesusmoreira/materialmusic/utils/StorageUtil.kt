@@ -14,17 +14,18 @@ class StorageUtil(val context: Context) {
 
     fun storeAudio(arrayList: ArrayList<Audio>?) {
         preferences = context.getSharedPreferences(STORAGE, Context.MODE_PRIVATE)
-        val editor = preferences!!.edit()
-        val gson = Gson()
-        val json = gson.toJson(arrayList)
-        editor.putString("audioArrayList", json)
-        editor.apply()
+        preferences?.edit()?.let { editor ->
+            val gson = Gson()
+            val json = gson.toJson(arrayList)
+            editor.putString("audioArrayList", json)
+            editor.apply()
+        }
     }
 
     fun loadAudio(): ArrayList<Audio>? {
         preferences = context.getSharedPreferences(STORAGE, Context.MODE_PRIVATE)
         val gson = Gson()
-        val json = preferences!!.getString("audioArrayList", null)
+        val json = preferences?.getString("audioArrayList", null)
         val type: Type = object : TypeToken<ArrayList<Audio>?>() {}.type
         return gson.fromJson(json, type)
     }
