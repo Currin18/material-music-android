@@ -150,7 +150,7 @@ class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInt
 
     private fun startSong(song: Audio) {
         mediaPlayer?.reset()
-        song.getURI()?.let { uri ->
+        song.uri?.let { uri ->
             mediaPlayer = MediaPlayer.create(this, uri)
         }
         mediaPlayer?.setOnCompletionListener {
