@@ -49,6 +49,9 @@ class MediaPlayerService : Service(),
         const val ACTION_PREVIOUS = "com.jesusmoreira.materialmusic.ACTION_PREVIOUS"
         const val ACTION_NEXT = "com.jesusmoreira.materialmusic.ACTION_NEXT"
         const val ACTION_STOP = "com.jesusmoreira.materialmusic.ACTION_STOP"
+        const val ACTION_SEEK = "com.jesusmoreira.materialmusic.ACTION_SEEK"
+
+        const val ARG_SEEK_DURATION = "com.jesusmoreira.materialmusic.ARG_SEEK_DURATION"
 
         // AudioPlayer notification ID
         private const val NOTIFICATION_ID = 101
@@ -168,6 +171,7 @@ class MediaPlayerService : Service(),
 
             override fun onSeekTo(position: Long) {
                 super.onSeekTo(position)
+                seekTo(position)
             }
         })
     }
@@ -267,6 +271,13 @@ class MediaPlayerService : Service(),
                 it.start()
                 sendBroadcast(Intent(PlayerFragment.PLAY))
             }
+        }
+    }
+
+    private fun seekTo(position: Long) {
+        mediaPlayer?.let {
+            resumePosition = position.toInt()
+            it.seekTo(resumePosition)
         }
     }
 
@@ -447,7 +458,7 @@ class MediaPlayerService : Service(),
         }
 
         // Handle Intent action from MediaSession.TransportControls
-        if (intent != null) handleIncomingActions(intent.action)
+        if (intent != null) handleIncomingActions(intent.action, intent.extras?.getInt(ARG_SEEK_DURATION))
 
         return super.onStartCommand(intent, flags, startId)
     }
@@ -571,13 +582,17 @@ class MediaPlayerService : Service(),
         registerReceiver(playNewAudio, filter)
     }
 
-    private fun handleIncomingActions(action: String?) {
+    private fun handleIncomingActions(action: String?, duration: Int?) {
         when {
             ACTION_PLAY.equals(action, true) -> transportControls?.play()
             ACTION_PAUSE.equals(action, true) -> transportControls?.pause()
             ACTION_NEXT.equals(action, true) -> transportControls?.skipToNext()
             ACTION_PREVIOUS.equals(action, true) -> transportControls?.skipToPrevious()
             ACTION_STOP.equals(action, true) -> transportControls?.stop()
+            ACTION_SEEK.equals(action, true) -> duration?.let {
+                Log.d(TAG, "progress: $duration")
+                transportControls?.seekTo(it.toLong())
+            }
             else -> Log.d(TAG, "Action not registered: $action")
         }
     }

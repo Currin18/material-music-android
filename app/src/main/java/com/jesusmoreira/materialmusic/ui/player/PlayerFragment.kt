@@ -12,6 +12,7 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.SeekBar
 import android.widget.Toast
 import com.google.gson.Gson
 import com.jesusmoreira.materialmusic.PlayerActivity
@@ -30,6 +31,8 @@ import org.jetbrains.anko.imageResource
 class PlayerFragment : Fragment() {
 
     companion object {
+        private const val TAG: String = "PlayerFragment"
+
         private const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
         private const val ARG_AUDIO_INDEX: String = "ARG_AUDIO_INDEX"
         private const val ARG_PLAY: String = "ARG_PLAY"
@@ -53,13 +56,13 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    var listener: PlayerListener? = null
+    private var listener: PlayerListener? = null
 
     var audioList: ArrayList<Audio>? = null
     var audioIndex: Int = 0
 
     var isPlaying: Boolean? = null
-    var isMinimized: Boolean = false
+    private var isMinimized: Boolean = false
 
     private val updaterPlayButton: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -142,12 +145,36 @@ class PlayerFragment : Fragment() {
         view.bigPlayer.visibility = View.GONE
         view.smallPlayer.visibility = View.GONE
 
-        audioList?.let {
+        audioList?.get(audioIndex)?.let { audio ->
             if (isMinimized) {
                 view.smallPlayer.visibility = View.VISIBLE
             } else {
                 view.bigPlayer.visibility = View.VISIBLE
             }
+
+            view.audioData.text = audio.displayName
+
+            val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
+            view.audioExtraData.text = extraData
+
+            audio.duration?.let { view.progression.max = (it).toInt() }
+            view.progression.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+                override fun onProgressChanged(
+                    seekBar: SeekBar?,
+                    progress: Int,
+                    fromUser: Boolean
+                ) {
+                    if (fromUser) {
+                        seekBar?.progress?.let { onSeekTo(it) }
+                        Toast.makeText(context, "seekbar progress: ${seekBar?.progress}, progress: $progress", Toast.LENGTH_LONG).show()
+                    }
+                }
+
+                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+
+            })
         }
 
         view.playOrPause.setOnClickListener {
@@ -230,11 +257,19 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    private fun launchIntentToPlayer(action: String) {
+    private fun onSeekTo(progress: Int) {
+        if (isPlaying != null) {
+            launchIntentToPlayer(MediaPlayerService.ACTION_SEEK, progress, progress)
+        }
+    }
+
+    private fun launchIntentToPlayer(action: String, requestCode: Int = 0, progress: Int? = null) {
         context?.let { context->
             val playbackAction = Intent(context, MediaPlayerService::class.java)
             playbackAction.action = action
-            PendingIntent.getService(context, 0, playbackAction, 0).send()
+            Log.d(TAG, "progress: $progress")
+            progress?.let { playbackAction.putExtra(MediaPlayerService.ARG_SEEK_DURATION, progress) }
+            PendingIntent.getService(context, requestCode, playbackAction, 0).send()
         }
     }
 }
