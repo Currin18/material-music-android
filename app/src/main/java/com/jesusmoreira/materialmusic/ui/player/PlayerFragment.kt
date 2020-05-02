@@ -1,29 +1,26 @@
 package com.jesusmoreira.materialmusic.ui.player
 
 import android.app.PendingIntent
-import android.content.*
-import android.database.Cursor
-import android.net.Uri
-import androidx.fragment.app.Fragment
+import android.content.BroadcastReceiver
+import android.content.Context
+import android.content.Intent
+import android.content.IntentFilter
 import android.os.Bundle
-import android.os.IBinder
-import android.provider.MediaStore
+import android.os.Handler
 import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.Toast
+import androidx.fragment.app.Fragment
 import com.google.gson.Gson
-import com.jesusmoreira.materialmusic.PlayerActivity
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.fragment_player.*
 import kotlinx.android.synthetic.main.fragment_player.view.*
-import kotlinx.android.synthetic.main.fragment_player.view.playOrPause
-import org.jetbrains.anko.imageResource
 
 /**
  * A placeholder fragment containing a simple view.
@@ -43,6 +40,9 @@ class PlayerFragment : Fragment() {
         const val PREVIOUS: String = "com.jesusmoreira.materialmusic.PlayerActivity.PREVIOUS"
         const val NEXT: String = "com.jesusmoreira.materialmusic.PlayerActivity.NEXT"
 
+        private var audioList: ArrayList<Audio>? = null
+        private var audioIndex: Int = 0
+
         fun newInstance(audioList: ArrayList<Audio>, audioIndex: Int, play: Boolean): PlayerFragment {
             val args = Bundle()
             args.putString(ARG_AUDIO_LIST, Gson().toJson(audioList))
@@ -56,13 +56,12 @@ class PlayerFragment : Fragment() {
         }
     }
 
+    private var isPlaying: Boolean? = null
+    private var isMinimized: Boolean = false
+
     private var listener: PlayerListener? = null
 
-    var audioList: ArrayList<Audio>? = null
-    var audioIndex: Int = 0
-
-    var isPlaying: Boolean? = null
-    private var isMinimized: Boolean = false
+    private var handler = Handler()
 
     private val updaterPlayButton: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -82,19 +81,31 @@ class PlayerFragment : Fragment() {
                     }
                     intent.action.equals(PREVIOUS) -> {
                         audioList?.let {
-                            audioIndex = when (audioIndex) {
-                                0 -> it.size
-                                else -> --audioIndex
+                            audioIndex = if (intent.hasExtra("index")) {
+                                intent.getIntExtra("index", 0)
+                            } else {
+                                when (audioIndex) {
+                                    0 -> it.size - 1
+                                    else -> --audioIndex
+                                }
                             }
                         }
+
+                        view?.let { printView(it) }
                     }
                     intent.action.equals(NEXT) -> {
                         audioList?.let {
-                            audioIndex = when (audioIndex) {
-                                it.size -> 0
-                                else -> --audioIndex
+                            audioIndex = if (intent.hasExtra("index")) {
+                                intent.getIntExtra("index", 0)
+                            } else {
+                                when (audioIndex) {
+                                    it.size - 1 -> 0
+                                    else -> ++audioIndex
+                                }
                             }
                         }
+
+                        view?.let { printView(it) }
                     }
                 }
             }
@@ -105,6 +116,7 @@ class PlayerFragment : Fragment() {
         fun setServiceBoundState(serviceBoundState: Boolean)
         fun getServiceBoundState(): Boolean
         fun bindService(service: Intent, flags: Int)
+        fun getProgress(): Int?
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -117,6 +129,13 @@ class PlayerFragment : Fragment() {
             )
         }
         arguments?.getInt(ARG_AUDIO_INDEX)?.let { audioIndex = it }
+
+//        if (context != null) {
+//            audioList = StorageUtil(requireContext()).loadAudio()
+//            audioIndex = StorageUtil(requireContext()).loadAudioIndex()
+//        }
+
+
         val play = arguments?.getBoolean(ARG_PLAY)
 
         if (play == true) {
@@ -142,6 +161,50 @@ class PlayerFragment : Fragment() {
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_player, container, false)
 
+        printView(view)
+
+        handler.post(object: Runnable {
+            override fun run() {
+                Log.d(TAG, "postDelayed")
+                listener?.getProgress()?.let { progress ->
+                    Log.d(TAG, "getProgress: $progress")
+                    seekProgress.progress = progress
+                    Log.d(TAG, "seekProgress: ${seekProgress.progress}")
+                }
+                handler.postDelayed(this, 1000)
+            }
+        })
+
+        view.seekProgress.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
+            override fun onProgressChanged(
+                seekBar: SeekBar?,
+                progress: Int,
+                fromUser: Boolean
+            ) {
+                if (fromUser) {
+                    seekBar?.progress?.let { onSeekTo(it) }
+                    Toast.makeText(context, "seekbar progress: ${seekBar?.progress}, progress: $progress", Toast.LENGTH_LONG).show()
+                }
+            }
+
+            override fun onStartTrackingTouch(seekBar: SeekBar?) {}
+
+            override fun onStopTrackingTouch(seekBar: SeekBar?) {}
+        })
+
+        view.playOrPause.setOnClickListener {
+            onPlayOrPause()
+        }
+        view.skipToPrevious.setOnClickListener {
+            onSkipToPrevious()
+        }
+        view.skipToNext.setOnClickListener {
+            onSkipToNext()
+        }
+        return view
+    }
+
+    private fun printView(view: View) {
         view.bigPlayer.visibility = View.GONE
         view.smallPlayer.visibility = View.GONE
 
@@ -157,36 +220,9 @@ class PlayerFragment : Fragment() {
             val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
             view.audioExtraData.text = extraData
 
-            audio.duration?.let { view.progression.max = (it).toInt() }
-            view.progression.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
-                override fun onProgressChanged(
-                    seekBar: SeekBar?,
-                    progress: Int,
-                    fromUser: Boolean
-                ) {
-                    if (fromUser) {
-                        seekBar?.progress?.let { onSeekTo(it) }
-                        Toast.makeText(context, "seekbar progress: ${seekBar?.progress}, progress: $progress", Toast.LENGTH_LONG).show()
-                    }
-                }
-
-                override fun onStartTrackingTouch(seekBar: SeekBar?) {}
-
-                override fun onStopTrackingTouch(seekBar: SeekBar?) {}
-
-            })
+            view.seekProgress.progress = 0
+            audio.duration?.let { view.seekProgress.max = (it).toInt() }
         }
-
-        view.playOrPause.setOnClickListener {
-            onPlayOrPause()
-        }
-        view.skipToPrevious.setOnClickListener {
-            onSkipToPrevious()
-        }
-        view.skipToNext.setOnClickListener {
-            onSkipToNext()
-        }
-        return view
     }
 
     override fun onAttach(context: Context) {
@@ -263,7 +299,7 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    private fun launchIntentToPlayer(action: String, requestCode: Int = 0, progress: Int? = null) {
+    private fun launchIntentToPlayer(action: String, requestCode: Int = -1, progress: Int? = null) {
         context?.let { context->
             val playbackAction = Intent(context, MediaPlayerService::class.java)
             playbackAction.action = action

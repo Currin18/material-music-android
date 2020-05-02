@@ -106,12 +106,12 @@ class MediaPlayerService : Service(),
             try {
                 activeAudio?.uri?.let { uri ->
                     mediaPlayer.setDataSource(applicationContext, uri)
+                    mediaPlayer.prepareAsync()
                 }
             } catch (e: IOException) {
                 e.printStackTrace()
                 stopSelf()
             }
-            mediaPlayer.prepareAsync()
         }
     }
 
@@ -209,6 +209,7 @@ class MediaPlayerService : Service(),
             // Reset mediaPlayer
             mediaPlayer?.reset()
             initMediaPlayer()
+            sendBroadcast(Intent(PlayerFragment.NEXT).putExtra("index", audioIndex))
         }
 
     }
@@ -232,6 +233,7 @@ class MediaPlayerService : Service(),
             // Reset mediaPlayer
             mediaPlayer?.reset()
             initMediaPlayer()
+            sendBroadcast(Intent(PlayerFragment.PREVIOUS).putExtra("index", audioIndex))
         }
 
     }
@@ -595,5 +597,12 @@ class MediaPlayerService : Service(),
             }
             else -> Log.d(TAG, "Action not registered: $action")
         }
+    }
+
+    fun getProgress(): Int? {
+        mediaPlayer?.let {
+            return it.currentPosition
+        }
+        return null
     }
 }

@@ -1,22 +1,26 @@
 package com.jesusmoreira.materialmusic
 
-import android.app.PendingIntent
-import android.content.*
+import android.content.ComponentName
+import android.content.ContentResolver
+import android.content.Intent
+import android.content.ServiceConnection
+import android.content.pm.PackageManager
 import android.database.Cursor
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.MediaStore
-import android.util.Log
+import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
+import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
+import com.jesusmoreira.materialmusic.utils.GeneralUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.activity_player.*
-import kotlinx.android.synthetic.main.fragment_player.*
-import org.jetbrains.anko.imageResource
 
 
 class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
@@ -54,7 +58,15 @@ class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
         loadAudio()
 
         button.setOnClickListener {
+            val storage = StorageUtil(this)
             audioList?.let { supportFragmentManager.beginTransaction().replace(R.id.player, PlayerFragment.newInstance(it, 0, true)).commit() }
+        }
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+            button.visibility = View.VISIBLE
+        } else {
+            // Ask for permission
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
         }
     }
 
@@ -77,6 +89,17 @@ class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
         serviceBound = savedInstanceState.getBoolean(SERVICE_STATE)
     }
 
+    override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
+        super.onRequestPermissionsResult(requestCode, permissions, grantResults)
+
+        if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            button.visibility = View.VISIBLE
+        } else {
+            GeneralUtil.longToast(this, "Permission not granted. Shutting down.")
+            finish()
+        }
+    }
+
     override fun setServiceBoundState(serviceBoundState: Boolean) {
         serviceBound = serviceBoundState
     }
@@ -89,6 +112,10 @@ class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
         serviceConnection?.let {
             bindService(service, it, flags)
         }
+    }
+
+    override fun getProgress(): Int? {
+        return player?.getProgress()
     }
 
     private fun loadAudio() {
