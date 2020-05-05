@@ -8,7 +8,7 @@
         tools:showIn="@layout/activity_player">
 
     <com.sothree.slidinguppanel.SlidingUpPanelLayout
-            android:id="@+id/bigPlayer"
+            android:id="@+id/player_sliding_layout"
             android:layout_width="match_parent"
             android:layout_height="match_parent"
             android:clickable="false"
@@ -16,7 +16,7 @@
             android:gravity="bottom"
             app:umanoFadeColor="#00000000"
             app:umanoOverlay="true"
-            app:umanoPanelHeight="200dp"
+            app:umanoPanelHeight="68dp"
             app:umanoScrollableView="@+id/player_recycler_view"
             app:umanoShadowHeight="0dp"
             app:layout_constraintTop_toTopOf="parent"
@@ -24,6 +24,7 @@
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">
         <androidx.constraintlayout.widget.ConstraintLayout
+                android:id="@+id/bigPlayer"
                 android:layout_width="match_parent"
                 android:layout_height="match_parent"
                 android:background="@color/colorPrimary">
@@ -153,57 +154,57 @@
                     app:cardUseCompatPadding="false"
                     app:layout_constraintTop_toTopOf="parent">
 
-                <RelativeLayout
-                        android:layout_width="match_parent"
-                        android:layout_height="wrap_content">
-
-                    <!--This is necessary for the drag sorting to work at the top-->
-                    <View
-                            android:id="@+id/draggable_area"
-                            android:layout_width="72dp"
-                            android:layout_height="wrap_content"
-                            android:layout_alignBottom="@+id/card_content"
-                            android:layout_alignTop="@+id/card_content"
-                            android:layout_marginTop="120dp" />
-
-                    <LinearLayout
-                            android:id="@+id/card_content"
+                    <RelativeLayout
                             android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:orientation="vertical">
+                            android:layout_height="wrap_content">
 
-                        <!--                            <TextView-->
-                        <!--                                    android:layout_width="match_parent"-->
-                        <!--                                    android:layout_height="match_parent"-->
-                        <!--                                    android:gravity="center|top"-->
-                        <!--                                    android:text="The Awesome Sliding Up Panel"-->
-                        <!--                                    android:textSize="16sp" />-->
+                        <!--This is necessary for the drag sorting to work at the top-->
+                        <View
+                                android:id="@+id/draggable_area"
+                                android:layout_width="72dp"
+                                android:layout_height="wrap_content"
+                                android:layout_alignBottom="@+id/card_content"
+                                android:layout_alignTop="@+id/card_content"
+                                android:layout_marginTop="120dp" />
 
-                        <include
-                                android:id="@+id/current_song"
-                                layout="@layout/item_list" />
-
-                        <TextView
-                                android:id="@+id/player_queue_sub_header"
-                                android:layout_width="match_parent"
-                                android:layout_height="48dp"
-                                android:gravity="center_vertical"
-                                android:paddingLeft="16dp"
-                                android:paddingRight="16dp"
-                                android:text="@string/up_next"
-                                android:textAppearance="@style/TextAppearance.AppCompat.Body2"
-                                android:textColor="?android:textColorSecondary" />
-
-                        <androidx.recyclerview.widget.RecyclerView
-                                android:id="@+id/player_recycler_view"
+                        <LinearLayout
+                                android:id="@+id/card_content"
                                 android:layout_width="match_parent"
                                 android:layout_height="wrap_content"
-                                android:paddingBottom="8dp"
-                                android:requiresFadingEdge="vertical" />
+                                android:orientation="vertical">
 
-                    </LinearLayout>
+<!--                            <TextView-->
+<!--                                    android:layout_width="match_parent"-->
+<!--                                    android:layout_height="match_parent"-->
+<!--                                    android:gravity="center|top"-->
+<!--                                    android:text="The Awesome Sliding Up Panel"-->
+<!--                                    android:textSize="16sp" />-->
 
-                </RelativeLayout>
+                            <include
+                                    android:id="@+id/current_song"
+                                    layout="@layout/item_list" />
+
+                            <TextView
+                                    android:id="@+id/player_queue_sub_header"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="48dp"
+                                    android:gravity="center_vertical"
+                                    android:paddingLeft="16dp"
+                                    android:paddingRight="16dp"
+                                    android:text="@string/up_next"
+                                    android:textAppearance="@style/TextAppearance.AppCompat.Body2"
+                                    android:textColor="?android:textColorSecondary" />
+
+                            <androidx.recyclerview.widget.RecyclerView
+                                    android:id="@+id/player_recycler_view"
+                                    android:layout_width="match_parent"
+                                    android:layout_height="wrap_content"
+                                    android:paddingBottom="8dp"
+                                    android:requiresFadingEdge="vertical" />
+
+                        </LinearLayout>
+
+                    </RelativeLayout>
 
             </androidx.cardview.widget.CardView>
         </androidx.constraintlayout.widget.ConstraintLayout>

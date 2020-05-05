@@ -1,10 +1,7 @@
 package com.jesusmoreira.materialmusic.ui.player
 
 import android.app.PendingIntent
-import android.content.BroadcastReceiver
-import android.content.Context
-import android.content.Intent
-import android.content.IntentFilter
+import android.content.*
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
@@ -14,13 +11,17 @@ import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.recyclerview.widget.LinearLayoutManager
+import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.jesusmoreira.materialmusic.R
+import com.jesusmoreira.materialmusic.adapters.PlayListRecyclerViewAdapter
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.fragment_player.*
 import kotlinx.android.synthetic.main.fragment_player.view.*
+import kotlinx.android.synthetic.main.item_list.view.*
 
 /**
  * A placeholder fragment containing a simple view.
@@ -61,7 +62,17 @@ class PlayerFragment : Fragment() {
 
     private var listener: PlayerListener? = null
 
-    private var handler = Handler()
+    private val handler = Handler()
+    private val runnableProgress = object: Runnable {
+        override fun run() {
+            listener?.getProgress()?.let { progress ->
+//                    Log.d(TAG, "getProgress: $progress")
+                seekProgress.progress = progress
+//                    Log.d(TAG, "seekProgress: ${seekProgress.progress}")
+            }
+            handler.postDelayed(this, 1000)
+        }
+    }
 
     private val updaterPlayButton: BroadcastReceiver = object : BroadcastReceiver() {
         override fun onReceive(context: Context, intent: Intent) {
@@ -70,12 +81,14 @@ class PlayerFragment : Fragment() {
                     intent.action.equals(PLAY) -> {
                         isPlaying = true
                         playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+                        handler.post(runnableProgress)
                     }
                     intent.action.equals(PAUSE) -> {
                         isPlaying = false
                         playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+                        handler.removeCallbacksAndMessages(null)
                     }
-                    intent.action.equals(PAUSE) -> {
+                    intent.action.equals(STOP) -> {
                         isPlaying = null
                         playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
                     }
@@ -153,6 +166,7 @@ class PlayerFragment : Fragment() {
     override fun onDestroy() {
         super.onDestroy()
         context?.unregisterReceiver(updaterPlayButton)
+        handler.removeCallbacksAndMessages(null)
     }
 
     override fun onCreateView(
@@ -161,19 +175,11 @@ class PlayerFragment : Fragment() {
     ): View? {
         val view: View = inflater.inflate(R.layout.fragment_player, container, false)
 
+//        setSupportActionBar(toolbar)
+
         printView(view)
 
-        handler.post(object: Runnable {
-            override fun run() {
-                Log.d(TAG, "postDelayed")
-                listener?.getProgress()?.let { progress ->
-                    Log.d(TAG, "getProgress: $progress")
-                    seekProgress.progress = progress
-                    Log.d(TAG, "seekProgress: ${seekProgress.progress}")
-                }
-                handler.postDelayed(this, 1000)
-            }
-        })
+        handler.post(runnableProgress)
 
         view.seekProgress.setOnSeekBarChangeListener(object: SeekBar.OnSeekBarChangeListener {
             override fun onProgressChanged(
@@ -183,7 +189,7 @@ class PlayerFragment : Fragment() {
             ) {
                 if (fromUser) {
                     seekBar?.progress?.let { onSeekTo(it) }
-                    Toast.makeText(context, "seekbar progress: ${seekBar?.progress}, progress: $progress", Toast.LENGTH_LONG).show()
+//                    Toast.makeText(context, "seekbar progress: ${seekBar?.progress}, progress: $progress", Toast.LENGTH_LONG).show()
                 }
             }
 
@@ -215,13 +221,32 @@ class PlayerFragment : Fragment() {
                 view.bigPlayer.visibility = View.VISIBLE
             }
 
-            view.audioData.text = audio.displayName
+            context?.let { view.albumImage.setImageBitmap(audio.getAlbumArtBitmap(it, 500, 500)) }
 
-            val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
-            view.audioExtraData.text = extraData
+//            view.audioData.text = audio.displayName
+//
+//            val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
+//            view.audioExtraData.text = extraData
 
             view.seekProgress.progress = 0
             audio.duration?.let { view.seekProgress.max = (it).toInt() }
+
+            view.title.text = audio.title
+
+            val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
+            view.text.text = extraData
+        }
+
+        audioList?.let {
+            val adapter = PlayListRecyclerViewAdapter(it)
+            val recycler = view.player_recycler_view as RecyclerView
+            recycler.setHasFixedSize(true)
+            recycler.layoutManager = LinearLayoutManager(context)
+            recycler.adapter = adapter
+            recycler.scrollToPosition(when {
+                audioIndex + 1 < it.size -> audioIndex + 1
+                else -> it.size - 1
+            })
         }
     }
 

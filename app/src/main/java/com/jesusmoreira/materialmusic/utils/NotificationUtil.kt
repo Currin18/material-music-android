@@ -77,7 +77,7 @@ object NotificationUtil {
             // Set the notification color
             .setColor(context.resources.getColor(R.color.colorPrimary, null))
             // Set large and small icons
-            .setLargeIcon(audio?.albumArtBitmap)
+            .setLargeIcon(audio?.getAlbumArtBitmap(context))
             .setSmallIcon(R.drawable.ic_headset_white_24dp)
             // Set Notification content information
             .setContentText(audio?.artist)
