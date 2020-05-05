@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.dashboard
+package com.jesusmoreira.materialmusic.ui.folder
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -10,20 +10,20 @@ import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProviders
 import com.jesusmoreira.materialmusic.R
 
-class DashboardFragment : Fragment() {
+class FolderFragment : Fragment() {
 
-    private lateinit var dashboardViewModel: DashboardViewModel
+    private lateinit var folderViewModel: FolderViewModel
 
     override fun onCreateView(
         inflater: LayoutInflater,
         container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        dashboardViewModel =
-            ViewModelProviders.of(this).get(DashboardViewModel::class.java)
-        val root = inflater.inflate(R.layout.fragment_dashboard, container, false)
-        val textView: TextView = root.findViewById(R.id.text_dashboard)
-        dashboardViewModel.text.observe(this, Observer {
+        folderViewModel =
+            ViewModelProviders.of(this).get(FolderViewModel::class.java)
+        val root = inflater.inflate(R.layout.fragment_folder, container, false)
+        val textView: TextView = root.findViewById(R.id.text_notifications)
+        folderViewModel.text.observe(viewLifecycleOwner, Observer {
             textView.text = it
         })
         return root

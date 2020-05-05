@@ -49,6 +49,12 @@
                 android:layout_width="wrap_content"
                 android:layout_height="match_parent"
                 android:text="@string/tab_artists_text" />
+
+        <com.google.android.material.tabs.TabItem
+                android:id="@+id/tab_playlists"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:text="@string/tab_playlists_text" />
     </com.google.android.material.tabs.TabLayout>
 
     <androidx.viewpager.widget.ViewPager

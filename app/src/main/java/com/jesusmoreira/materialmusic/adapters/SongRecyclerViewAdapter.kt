@@ -21,7 +21,7 @@ import kotlinx.android.synthetic.main.fragment_song_list_item.view.*
  */
 class SongRecyclerViewAdapter(
     private val context: Context,
-    private val mValues: List<Audio>,
+    private val musicList: ArrayList<Audio>,
     private val mListener: OnSongListFragmentInteractionListener?
 ) : RecyclerView.Adapter<SongRecyclerViewAdapter.ViewHolder>() {
 
@@ -29,10 +29,10 @@ class SongRecyclerViewAdapter(
 
     init {
         mOnClickListener = View.OnClickListener { v ->
-            val item = v.tag as Audio
+            val position = v.tag as Int
             // Notify the active callbacks interface (the activity, if the fragment is attached to
             // one) that an item has been selected.
-            mListener?.onSongClicked(item)
+            mListener?.onSongClicked(musicList, position)
         }
     }
 
@@ -43,19 +43,19 @@ class SongRecyclerViewAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item: Audio = mValues[position]
+        val item: Audio = musicList[position]
         holder.titleView.text = item.title
         holder.artistView.text = item.artist
 
-//        holder.albumArtView.setImageURI(item.getURI())
+        holder.albumArtView.setImageBitmap(item.getAlbumArtBitmap(context, 100, 100))
 
         with(holder.mView) {
-            tag = item
+            tag = position
             setOnClickListener(mOnClickListener)
         }
     }
 
-    override fun getItemCount(): Int = mValues.size
+    override fun getItemCount(): Int = musicList.size
 
     inner class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
         val titleView: TextView = mView.title

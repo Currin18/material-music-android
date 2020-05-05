@@ -79,7 +79,7 @@ class SongsTabFragment : Fragment() {
      * for more information.
      */
     interface OnSongListFragmentInteractionListener {
-        fun onSongClicked(item: Audio)
+        fun onSongClicked(audioList: ArrayList<Audio>, position: Int)
     }
 
     companion object {

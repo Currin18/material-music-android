@@ -9,7 +9,7 @@ import com.jesusmoreira.materialmusic.models.Audio
 class LibraryViewModel: ViewModel() {
 
     private val _text = MutableLiveData<String>().apply {
-        value = "This is library Fragment"
+        value = "This is Library Fragment"
     }
     val text: LiveData<String> = _text
 

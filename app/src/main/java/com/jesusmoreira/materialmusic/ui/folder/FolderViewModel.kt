@@ -1,13 +1,13 @@
-package com.jesusmoreira.materialmusic.ui.notifications
+package com.jesusmoreira.materialmusic.ui.folder
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
-class NotificationsViewModel : ViewModel() {
+class FolderViewModel : ViewModel() {
 
     private val _text = MutableLiveData<String>().apply {
-        value = "This is notifications Fragment"
+        value = "This is Folder Fragment"
     }
     val text: LiveData<String> = _text
 }

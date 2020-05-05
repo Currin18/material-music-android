@@ -223,11 +223,6 @@ class PlayerFragment : Fragment() {
 
             context?.let { view.albumImage.setImageBitmap(audio.getAlbumArtBitmap(it, 500, 500)) }
 
-//            view.audioData.text = audio.displayName
-//
-//            val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
-//            view.audioExtraData.text = extraData
-
             view.seekProgress.progress = 0
             audio.duration?.let { view.seekProgress.max = (it).toInt() }
 

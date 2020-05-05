@@ -80,6 +80,9 @@ dependencies {
     implementation "com.mtechviral.mplaylib:mplaylib:$versions.mplaylib"
 
     implementation "com.google.android.material:material:$versions.material"
+    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
+    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
+    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
     testImplementation "junit:junit:$versions.junit"
     androidTestImplementation "androidx.test.ext:junit:$versions.androidx_junit"
     androidTestImplementation "androidx.test.espresso:espresso-core:$versions.espresso"

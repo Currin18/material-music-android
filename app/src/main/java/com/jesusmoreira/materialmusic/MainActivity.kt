@@ -1,13 +1,16 @@
 package com.jesusmoreira.materialmusic
 
-//import kotlinx.coroutines.experimental.async
-//import kotlinx.coroutines.experimental.launch
-import android.Manifest
+import android.content.ComponentName
+import android.content.ContentResolver
+import android.content.Intent
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.media.MediaPlayer
+import android.database.Cursor
+import android.net.Uri
 import android.os.Bundle
+import android.os.IBinder
+import android.provider.MediaStore
 import android.view.View
-import android.widget.FrameLayout
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -17,18 +20,25 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
+import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.ui.library.SongsTabFragment
-//import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
-import com.mtechviral.mplaylib.MusicFinder
-import kotlinx.coroutines.async
-import kotlinx.coroutines.launch
-import org.jetbrains.anko.custom.async
+import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
+import com.jesusmoreira.materialmusic.utils.GeneralUtil
+import com.jesusmoreira.materialmusic.utils.StorageUtil
+import kotlinx.android.synthetic.main.activity_player.*
 
-class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInteractionListener {
+class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongsTabFragment.OnSongListFragmentInteractionListener {
 
-    private var songs: List<MusicFinder.Song>? = null
-    private var mediaPlayer: MediaPlayer? = null
+    companion object {
+        const val SERVICE_STATE: String = "ServiceState"
+    }
+
+    private var serviceBound = false
+    private var audioList : ArrayList<Audio>? = arrayListOf()
+
+    private var player: MediaPlayerService? = null
+    private var serviceConnection : ServiceConnection? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,133 +50,112 @@ class MainActivity : AppCompatActivity(), SongsTabFragment.OnSongListFragmentInt
         // menu should be considered as top level destinations.
         val appBarConfiguration = AppBarConfiguration(
             setOf(
-                R.id.navigation_library, R.id.navigation_dashboard, R.id.navigation_notifications
+                R.id.navigation_library, R.id.navigation_podcast, R.id.navigation_folder, R.id.navigation_settings
             )
         )
-        setupActionBarWithNavController(navController, appBarConfiguration)
+        setSupportActionBar(toolbar)
+//        setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.READ_EXTERNAL_STORAGE) != PackageManager.PERMISSION_GRANTED) {
-            // Ask for permission
-            ActivityCompat.requestPermissions(this, arrayOf(Manifest.permission.READ_EXTERNAL_STORAGE), 0)
-        } else {
-            createPlayer()
+        serviceConnection = object: ServiceConnection {
+            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+                // We've bound to LocalService, cast the IBinder and get LocalService instance
+                val binder : MediaPlayerService.LocalBinder = service as MediaPlayerService.LocalBinder
+                player = binder.getService()
+                serviceBound = true
+
+                Toast.makeText(this@MainActivity, "Service Bound", Toast.LENGTH_SHORT).show()
+            }
+
+            override fun onServiceDisconnected(name: ComponentName?) {
+                serviceBound = false
+            }
         }
+
+//        button.setOnClickListener {
+//            val storage = StorageUtil(this)
+//            audioList?.let { supportFragmentManager.beginTransaction().replace(R.id.player, PlayerFragment.newInstance(it, 0, true)).commit() }
+//        }
+
+        if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
+//            button.visibility = View.VISIBLE
+            loadAudio()
+        } else {
+            // Ask for permission
+            ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
+        }
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        if (serviceBound) {
+            serviceConnection?.let { unbindService(it) }
+            // service is active
+            player?.stopSelf()
+        }
+    }
+
+    override fun onSaveInstanceState(outState: Bundle) {
+        outState.putBoolean(PlayerActivity.SERVICE_STATE, serviceBound)
+        super.onSaveInstanceState(outState)
+    }
+
+    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
+        super.onRestoreInstanceState(savedInstanceState)
+        serviceBound = savedInstanceState.getBoolean(PlayerActivity.SERVICE_STATE)
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-            createPlayer()
+//            button.visibility = View.VISIBLE
+            loadAudio()
         } else {
-            longToast("Permission not granted. Shutting down.")
+            GeneralUtil.longToast(this, "Permission not granted. Shutting down.")
             finish()
         }
     }
 
-    private fun createPlayer() {
+    override fun setServiceBoundState(serviceBoundState: Boolean) {
+        serviceBound = serviceBoundState
+    }
 
-        var songsJob = async {
-            val songFinder = MusicFinder(contentResolver)
-            songFinder.prepare()
-            songFinder.allSongs
+    override fun getServiceBoundState(): Boolean {
+        return serviceBound
+    }
+
+    override fun bindService(service: Intent, flags: Int) {
+        serviceConnection?.let {
+            bindService(service, it, flags)
         }
-
-
-//        launch(kotlinx.coroutines.android.UI) {
-//            songs = songsJob.await()
-
-//            val playerUI = object: AnkoComponent<MainActivity> {
-//                override fun createView(ui: AnkoContext<MainActivity>) = with(ui) {
-//                    relativeLayout{
-//                        backgroundColor = Color.BLACK
-//
-//                        albumArt = imageView{
-//                            scaleType = ImageView.ScaleType.FIT_CENTER
-//                        }.lparams(matchParent, matchParent)
-//
-//                        verticalLayout{
-//                            backgroundColor = Color.parseColor("#99000000")
-//                            songTitle = textView{
-//                                textColor = Color.WHITE
-//                                typeface = Typeface.DEFAULT_BOLD
-//                                textSize = 18f
-//                            }
-//
-//                            songArtist = textView{
-//                                textColor = Color.WHITE
-//                            }
-//
-//                            linearLayout{
-//                                playButton = imageButton{
-//                                    imageResource = R.drawable.ic_play_arrow_black_24dp
-//                                    onClick {
-//                                        playOrPause()
-//                                    }
-//                                }.lparams(0, wrapContent,0.5f)
-//
-//                                shuffleButton = imageButton{
-//                                    imageResource = R.drawable.ic_shuffle_black_24dp
-//                                    onClick {
-//                                        playRandom()
-//                                    }
-//                                }.lparams(0, wrapContent,0.5f)
-//                            }.lparams(matchParent, wrapContent){
-//                                topMargin = dip(5)
-//                            }
-//
-//
-//
-//                        }.lparams(matchParent, wrapContent){
-//                            alignParentBottom()
-//                        }
-//                    }
-//                }
-//            }
-//        }
     }
 
-    override fun onDestroy() {
-        mediaPlayer?.release()
-        super.onDestroy()
+    override fun getProgress(): Int? {
+        return player?.getProgress()
     }
 
-    private fun shortToast(text: String) {
-        Toast.makeText(this, text, Toast.LENGTH_SHORT).show()
-    }
-    private fun longToast(text: String) {
-        Toast.makeText(this, text, Toast.LENGTH_LONG).show()
-    }
-
-    override fun onSongClicked(item: Audio) {
-        val playerView: FrameLayout = findViewById(R.id.player_fragment)
-        //supportFragmentManager.beginTransaction().replace(R.id.player_fragment, PlayerFragment.newInstance(item)).commit()
-        playerView.visibility = View.VISIBLE
-
-//        songs?.get(0)?.let { startSong(it) }
-        startSong(item)
+    override fun onSongClicked(musicList: ArrayList<Audio>, position: Int) {
+        supportFragmentManager.beginTransaction()
+            .replace(R.id.player, PlayerFragment.newInstance(musicList, position, true))
+            .commit()
     }
 
-    private fun startSong(song: Audio) {
-        mediaPlayer?.reset()
-        song.uri?.let { uri ->
-            mediaPlayer = MediaPlayer.create(this, uri)
-        }
-        mediaPlayer?.setOnCompletionListener {
+    private fun loadAudio() {
+        val contentResolver: ContentResolver? = contentResolver
+        val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
+        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
+        val cursor: Cursor? = contentResolver?.query(uri, null, selection, null, sortOrder)
 
-        }
-
-        mediaPlayer?.start()
-    }
-
-    private fun playOrStart() {
-        if (mediaPlayer?.isPlaying == true) {
-            mediaPlayer?.pause()
-            // change button to start
-        } else {
-            mediaPlayer?.start()
-            // change button to pause
+        cursor?.let {
+            if (it.count > 0) {
+                audioList = arrayListOf()
+                while (cursor.moveToNext()) {
+                    audioList?.add(Audio(cursor))
+                }
+            }
+            it.close()
         }
     }
 }
