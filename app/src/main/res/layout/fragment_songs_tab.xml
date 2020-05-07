@@ -10,5 +10,5 @@
         android:layout_marginLeft="16dp"
         android:layout_marginRight="16dp"
         app:layoutManager="LinearLayoutManager"
-        tools:context=".ui.library.SongsTabFragment"
+        tools:context=".ui.library.TabSongsFragment"
         tools:listitem="@layout/fragment_song_list_item"/>

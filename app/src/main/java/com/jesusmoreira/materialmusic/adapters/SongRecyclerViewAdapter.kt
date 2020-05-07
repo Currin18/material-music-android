@@ -11,7 +11,7 @@ import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Audio
 
 
-import com.jesusmoreira.materialmusic.ui.library.SongsTabFragment.OnSongListFragmentInteractionListener
+import com.jesusmoreira.materialmusic.ui.library.TabSongsFragment.OnSongListFragmentInteractionListener
 
 import kotlinx.android.synthetic.main.fragment_song_list_item.view.*
 

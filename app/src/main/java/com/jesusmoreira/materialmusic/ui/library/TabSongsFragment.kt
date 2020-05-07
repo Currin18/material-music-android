@@ -17,9 +17,9 @@ import com.jesusmoreira.materialmusic.models.Audio
 /**
  * A fragment representing a list of Items.
  * Activities containing this fragment MUST implement the
- * [SongsTabFragment.OnSongListFragmentInteractionListener] interface.
+ * [TabSongsFragment.OnSongListFragmentInteractionListener] interface.
  */
-class SongsTabFragment : Fragment() {
+class TabSongsFragment : Fragment() {
 
     // TODO: Customize parameters
     private var columnCount = 1
@@ -90,7 +90,7 @@ class SongsTabFragment : Fragment() {
 
         @JvmStatic
         fun newInstance() =
-            SongsTabFragment().apply {
+            TabSongsFragment().apply {
 //                arguments = Bundle().apply {
 //                    putInt(ARG_COLUMN_COUNT, columnCount)
 //                }

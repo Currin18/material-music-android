@@ -2,6 +2,8 @@ package com.jesusmoreira.materialmusic.ui.player
 
 import android.app.PendingIntent
 import android.content.*
+import android.graphics.Bitmap
+import android.os.Build
 import android.os.Bundle
 import android.os.Handler
 import android.util.Log
@@ -11,6 +13,7 @@ import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.palette.graphics.Palette
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
@@ -18,10 +21,12 @@ import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.PlayListRecyclerViewAdapter
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.fragment_player.*
 import kotlinx.android.synthetic.main.fragment_player.view.*
 import kotlinx.android.synthetic.main.item_list.view.*
+import org.jetbrains.anko.backgroundColor
 
 /**
  * A placeholder fragment containing a simple view.
@@ -58,7 +63,9 @@ class PlayerFragment : Fragment() {
     }
 
     private var isPlaying: Boolean? = null
-    private var isMinimized: Boolean = false
+    var isMinimized: Boolean = false
+
+    var palette: Palette? = null
 
     private var listener: PlayerListener? = null
 
@@ -81,11 +88,13 @@ class PlayerFragment : Fragment() {
                     intent.action.equals(PLAY) -> {
                         isPlaying = true
                         playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+                        miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
                         handler.post(runnableProgress)
                     }
                     intent.action.equals(PAUSE) -> {
                         isPlaying = false
                         playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+                        miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
                         handler.removeCallbacksAndMessages(null)
                     }
                     intent.action.equals(STOP) -> {
@@ -198,6 +207,10 @@ class PlayerFragment : Fragment() {
             override fun onStopTrackingTouch(seekBar: SeekBar?) {}
         })
 
+        view.minimizeButton.setOnClickListener {
+            minimize()
+        }
+
         view.playOrPause.setOnClickListener {
             onPlayOrPause()
         }
@@ -207,41 +220,77 @@ class PlayerFragment : Fragment() {
         view.skipToNext.setOnClickListener {
             onSkipToNext()
         }
+
+        view.smallPlayer.setOnClickListener {
+            maximize()
+        }
+        view.miniPlayOrPause.setOnClickListener {
+            onPlayOrPause()
+        }
         return view
     }
 
     private fun printView(view: View) {
-        view.bigPlayer.visibility = View.GONE
-        view.smallPlayer.visibility = View.GONE
+        with(view) {
+            bigPlayer.visibility = View.GONE
+            smallPlayer.visibility = View.GONE
 
-        audioList?.get(audioIndex)?.let { audio ->
-            if (isMinimized) {
-                view.smallPlayer.visibility = View.VISIBLE
-            } else {
-                view.bigPlayer.visibility = View.VISIBLE
+            audioList?.get(audioIndex)?.let { audio ->
+                if (isMinimized) {
+                    smallPlayer.visibility = View.VISIBLE
+                } else {
+                    bigPlayer.visibility = View.VISIBLE
+                }
+
+                context?.let { context ->
+                    val bitmap = audio.getAlbumArtBitmap(context, 500, 500)
+                    albumImage.setImageBitmap(bitmap)
+
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        val mutableCopy = bitmap?.copy(Bitmap.Config.RGB_565, true)
+                        if (mutableCopy != null) {
+                            palette = GraphicUtil.getPaletteFromBitmap(mutableCopy)
+                            palette?.let { palette ->
+                                GraphicUtil.printPalette(palette)
+                                val backgroundColor = GraphicUtil.getColorFromPalette(palette)
+                                if (backgroundColor != null) {
+                                    Log.d(TAG, "BackgroundColor: ${GraphicUtil.intToRGB(backgroundColor)}")
+                                    smallPlayerBg.backgroundColor = backgroundColor
+                                    bigPlayerBg.backgroundColor = backgroundColor
+                                }
+
+//                                val tintColor = palette.lightMutedSwatch?.rgb
+//                                if (tintColor != null) {
+//                                    shuffle.setColorFilter(tintColor)
+//                                    skipToPrevious.setColorFilter(tintColor)
+//                                }
+                            }
+                        }
+                    }
+
+                }
+
+                seekProgress.progress = 0
+                audio.duration?.let { seekProgress.max = (it).toInt() }
+
+                title.text = audio.title
+                mimiTitle.text = audio.title
+
+                val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
+                text.text = extraData
             }
 
-            context?.let { view.albumImage.setImageBitmap(audio.getAlbumArtBitmap(it, 500, 500)) }
-
-            view.seekProgress.progress = 0
-            audio.duration?.let { view.seekProgress.max = (it).toInt() }
-
-            view.title.text = audio.title
-
-            val extraData = "${audio.album ?: "unknown"} · ${audio.artist ?: "unknown"}"
-            view.text.text = extraData
-        }
-
-        audioList?.let {
-            val adapter = PlayListRecyclerViewAdapter(it)
-            val recycler = view.player_recycler_view as RecyclerView
-            recycler.setHasFixedSize(true)
-            recycler.layoutManager = LinearLayoutManager(context)
-            recycler.adapter = adapter
-            recycler.scrollToPosition(when {
-                audioIndex + 1 < it.size -> audioIndex + 1
-                else -> it.size - 1
-            })
+            audioList?.let {
+                val adapter = PlayListRecyclerViewAdapter(it)
+                val recycler = player_recycler_view as RecyclerView
+                recycler.setHasFixedSize(true)
+                recycler.layoutManager = LinearLayoutManager(context)
+                recycler.adapter = adapter
+                recycler.scrollToPosition(when {
+                    audioIndex + 1 < it.size -> audioIndex + 1
+                    else -> it.size - 1
+                })
+            }
         }
     }
 
@@ -327,5 +376,15 @@ class PlayerFragment : Fragment() {
             progress?.let { playbackAction.putExtra(MediaPlayerService.ARG_SEEK_DURATION, progress) }
             PendingIntent.getService(context, requestCode, playbackAction, 0).send()
         }
+    }
+
+    fun minimize() {
+        view?.bigPlayer?.visibility = View.GONE
+        view?.smallPlayer?.visibility = View.VISIBLE
+    }
+
+    fun maximize() {
+        view?.bigPlayer?.visibility = View.VISIBLE
+        view?.smallPlayer?.visibility = View.GONE
     }
 }

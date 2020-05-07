@@ -10,25 +10,22 @@ import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.MediaStore
-import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
-import androidx.navigation.ui.setupActionBarWithNavController
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
-import com.jesusmoreira.materialmusic.ui.library.SongsTabFragment
+import com.jesusmoreira.materialmusic.ui.library.TabSongsFragment
 import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
 import com.jesusmoreira.materialmusic.utils.GeneralUtil
-import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.activity_player.*
 
-class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongsTabFragment.OnSongListFragmentInteractionListener {
+class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  TabSongsFragment.OnSongListFragmentInteractionListener {
 
     companion object {
         const val SERVICE_STATE: String = "ServiceState"
@@ -79,7 +76,7 @@ class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongsT
 
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
 //            button.visibility = View.VISIBLE
-            loadAudio()
+//            loadAudio()
         } else {
             // Ask for permission
             ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
@@ -110,10 +107,25 @@ class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongsT
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
 //            button.visibility = View.VISIBLE
-            loadAudio()
+//            loadAudio()
         } else {
             GeneralUtil.longToast(this, "Permission not granted. Shutting down.")
             finish()
+        }
+    }
+
+    override fun onBackPressed() {
+        val playerFragments = supportFragmentManager.fragments.filterIsInstance<PlayerFragment>()
+        if (playerFragments.isNotEmpty()) {
+            with(playerFragments[1]) {
+                if (!this.isMinimized) {
+                    this.minimize()
+                } else {
+                    super.onBackPressed()
+                }
+            }
+        } else {
+            super.onBackPressed()
         }
     }
 

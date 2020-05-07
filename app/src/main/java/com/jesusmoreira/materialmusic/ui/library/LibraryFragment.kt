@@ -56,8 +56,8 @@ class LibraryFragment : Fragment() {
     class ViewPagerAdapter(fragmentManager: FragmentManager, private val tabLayout: TabLayout): FragmentStatePagerAdapter(fragmentManager) {
         override fun getItem(position: Int): Fragment {
             return when(position) {
-                0 -> SongsTabFragment.newInstance()
-                else ->  SongsTabFragment.newInstance()
+                0 -> TabSongsFragment.newInstance()
+                else ->  TabSongsFragment.newInstance()
             }
         }
 
