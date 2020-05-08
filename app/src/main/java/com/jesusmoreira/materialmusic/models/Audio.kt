@@ -6,6 +6,7 @@ import android.database.Cursor
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
 import android.graphics.ImageDecoder
+import android.graphics.drawable.Drawable
 import android.net.Uri
 import android.os.Build
 import android.provider.MediaStore
@@ -110,11 +111,7 @@ data class Audio(
             }
             bitmap = bitmap?.let { Bitmap.createScaledBitmap(it, width, height, true) }
         } catch (exception: FileNotFoundException) {
-            exception.printStackTrace()
-            bitmap = BitmapFactory.decodeResource(
-                context.resources,
-                R.drawable.ic_album_black_24dp
-            )
+            Log.w(TAG, "${exception.message}")
         } catch (e: IOException) {
             e.printStackTrace()
         }

@@ -244,7 +244,7 @@ class PlayerFragment : Fragment() {
 
                 context?.let { context ->
                     val bitmap = audio.getAlbumArtBitmap(context, 500, 500)
-                    albumImage.setImageBitmap(bitmap)
+                    bitmap?.let { albumImage.setImageBitmap(it) }
 
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         val mutableCopy = bitmap?.copy(Bitmap.Config.RGB_565, true)

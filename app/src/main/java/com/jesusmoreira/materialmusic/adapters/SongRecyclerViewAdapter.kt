@@ -47,7 +47,7 @@ class SongRecyclerViewAdapter(
         holder.titleView.text = item.title
         holder.artistView.text = item.artist
 
-        holder.albumArtView.setImageBitmap(item.getAlbumArtBitmap(context, 100, 100))
+        item.getAlbumArtBitmap(context, 100, 100)?.let { holder.albumArtView.setImageBitmap(it) }
 
         with(holder.mView) {
             tag = position
