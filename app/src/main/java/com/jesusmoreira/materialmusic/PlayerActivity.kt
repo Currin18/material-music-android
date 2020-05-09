@@ -15,7 +15,7 @@ import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
+import com.jesusmoreira.materialmusic.services.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
 import com.jesusmoreira.materialmusic.utils.GeneralUtil

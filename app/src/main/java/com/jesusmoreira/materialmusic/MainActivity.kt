@@ -18,7 +18,7 @@ import androidx.navigation.findNavController
 import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
+import com.jesusmoreira.materialmusic.services.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.ui.library.TabSongsFragment
 import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
@@ -117,7 +117,7 @@ class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  TabSon
     override fun onBackPressed() {
         val playerFragments = supportFragmentManager.fragments.filterIsInstance<PlayerFragment>()
         if (playerFragments.isNotEmpty()) {
-            with(playerFragments[1]) {
+            with(playerFragments[0]) {
                 if (!this.isMinimized) {
                     this.minimize()
                 } else {

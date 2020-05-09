@@ -13,13 +13,14 @@ import android.view.ViewGroup
 import android.widget.SeekBar
 import android.widget.Toast
 import androidx.fragment.app.Fragment
+import androidx.lifecycle.ViewModelProvider
 import androidx.palette.graphics.Palette
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.google.gson.Gson
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.PlayListRecyclerViewAdapter
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
+import com.jesusmoreira.materialmusic.services.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
@@ -67,6 +68,7 @@ class PlayerFragment : Fragment() {
 
     var palette: Palette? = null
 
+    private lateinit var viewModel: PlayerViewModel
     private var listener: PlayerListener? = null
 
     private val handler = Handler()
@@ -143,6 +145,9 @@ class PlayerFragment : Fragment() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+
+        viewModel =
+            ViewModelProvider(this).get(PlayerViewModel::class.java)
 
         arguments?.getString(ARG_AUDIO_LIST)?.let {
             audioList = Gson().fromJson(

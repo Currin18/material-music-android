@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.controllers
+package com.jesusmoreira.materialmusic.services
 
 import android.app.Service
 import android.content.BroadcastReceiver
@@ -57,7 +57,8 @@ class MediaPlayerService : Service(),
         private const val NOTIFICATION_ID = 101
 
         // Binder give clients
-        private var iBinder : IBinder = LocalBinder()
+        private var iBinder : IBinder =
+            LocalBinder()
 
         private var mediaPlayer: MediaPlayer? = null
         // Path to the audio file
@@ -140,26 +141,30 @@ class MediaPlayerService : Service(),
             override fun onPlay() {
                 super.onPlay()
                 resumeMedia()
-                NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PLAYING)
+                NotificationUtil.buildNotification(applicationContext, mediaSession,
+                    activeAudio, PlaybackStatus.PLAYING)
             }
 
             override fun onPause() {
                 super.onPause()
                 pauseMedia()
-                NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PAUSED)
+                NotificationUtil.buildNotification(applicationContext, mediaSession,
+                    activeAudio, PlaybackStatus.PAUSED)
             }
 
             override fun onSkipToNext() {
                 super.onSkipToNext()
                 skipToNext()
                 updateMetaData()
-                NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PLAYING)
+                NotificationUtil.buildNotification(applicationContext, mediaSession,
+                    activeAudio, PlaybackStatus.PLAYING)
             }
 
             override fun onSkipToPrevious() {
                 super.onSkipToPrevious()
                 skipToPrevious()
-                NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PLAYING)
+                NotificationUtil.buildNotification(applicationContext, mediaSession,
+                    activeAudio, PlaybackStatus.PLAYING)
             }
 
             override fun onStop() {
@@ -191,7 +196,7 @@ class MediaPlayerService : Service(),
     }
 
     private fun skipToNext() {
-        audioList?.let {audioList ->
+        audioList?.let { audioList ->
             activeAudio = when(audioIndex) {
                 // If last in playlist
                 audioList.size - 1 -> {
@@ -209,13 +214,15 @@ class MediaPlayerService : Service(),
             // Reset mediaPlayer
             mediaPlayer?.reset()
             initMediaPlayer()
-            sendBroadcast(Intent(PlayerFragment.NEXT).putExtra("index", audioIndex))
+            sendBroadcast(Intent(PlayerFragment.NEXT).putExtra("index",
+                audioIndex
+            ))
         }
 
     }
 
     private fun skipToPrevious() {
-        audioList?.let {audioList ->
+        audioList?.let { audioList ->
             activeAudio = when(audioIndex) {
                 // If first in playlist
                 0 -> {
@@ -233,7 +240,9 @@ class MediaPlayerService : Service(),
             // Reset mediaPlayer
             mediaPlayer?.reset()
             initMediaPlayer()
-            sendBroadcast(Intent(PlayerFragment.PREVIOUS).putExtra("index", audioIndex))
+            sendBroadcast(Intent(PlayerFragment.PREVIOUS).putExtra("index",
+                audioIndex
+            ))
         }
 
     }
@@ -456,11 +465,14 @@ class MediaPlayerService : Service(),
                 e.printStackTrace()
                 stopSelf()
             }
-            NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PLAYING)
+            NotificationUtil.buildNotification(applicationContext, mediaSession,
+                activeAudio, PlaybackStatus.PLAYING)
         }
 
         // Handle Intent action from MediaSession.TransportControls
-        if (intent != null) handleIncomingActions(intent.action, intent.extras?.getInt(ARG_SEEK_DURATION))
+        if (intent != null) handleIncomingActions(intent.action, intent.extras?.getInt(
+            ARG_SEEK_DURATION
+        ))
 
         return super.onStartCommand(intent, flags, startId)
     }
@@ -489,7 +501,8 @@ class MediaPlayerService : Service(),
 
         //Disable the PhoneStateListener
         if (phoneStateListener != null) {
-            telephonyManager?.listen(phoneStateListener, PhoneStateListener.LISTEN_NONE)
+            telephonyManager?.listen(
+                phoneStateListener, PhoneStateListener.LISTEN_NONE)
         }
 
         NotificationUtil.removeNotification(applicationContext)
@@ -513,7 +526,8 @@ class MediaPlayerService : Service(),
         override fun onReceive(context: Context, intent: Intent) {
             //pause audio on ACTION_AUDIO_BECOMING_NOISY
             pauseMedia()
-            NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PAUSED)
+            NotificationUtil.buildNotification(applicationContext, mediaSession,
+                activeAudio, PlaybackStatus.PAUSED)
         }
     }
 
@@ -574,7 +588,8 @@ class MediaPlayerService : Service(),
             mediaPlayer?.reset()
             initMediaPlayer()
             updateMetaData()
-            NotificationUtil.buildNotification(applicationContext, mediaSession, activeAudio, PlaybackStatus.PLAYING)
+            NotificationUtil.buildNotification(applicationContext, mediaSession,
+                activeAudio, PlaybackStatus.PLAYING)
         }
     }
 

@@ -11,7 +11,7 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.SongRecyclerViewAdapter
-import com.jesusmoreira.materialmusic.controllers.AudioController
+import com.jesusmoreira.materialmusic.controllers.MediaController
 import com.jesusmoreira.materialmusic.models.Audio
 
 /**
@@ -38,16 +38,13 @@ class TabSongsFragment : Fragment() {
         inflater: LayoutInflater, container: ViewGroup?,
         savedInstanceState: Bundle?
     ): View? {
-        val view = inflater.inflate(R.layout.fragment_songs_tab, container, false)
+        val view = inflater.inflate(R.layout.fragment_tab_songs, container, false)
 
         // Set the adapter
         if (view is RecyclerView) {
             with(view) {
-                layoutManager = when {
-                    columnCount <= 1 -> LinearLayoutManager(context)
-                    else -> GridLayoutManager(context, columnCount)
-                }
-                adapter = SongRecyclerViewAdapter(context, AudioController(context).getMusicList(), listener)
+                layoutManager = LinearLayoutManager(context)
+                adapter = SongRecyclerViewAdapter(context, MediaController(context).getMusicList(), listener)
             }
         }
         return view

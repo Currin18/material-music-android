@@ -13,7 +13,7 @@ import com.jesusmoreira.materialmusic.models.Audio
 
 import com.jesusmoreira.materialmusic.ui.library.TabSongsFragment.OnSongListFragmentInteractionListener
 
-import kotlinx.android.synthetic.main.fragment_song_list_item.view.*
+import kotlinx.android.synthetic.main.item_list_song.view.*
 
 /**
  * [RecyclerView.Adapter] that can display a [Audio] and makes a call to the
@@ -38,7 +38,7 @@ class SongRecyclerViewAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.fragment_song_list_item, parent, false)
+            .inflate(R.layout.item_list_song, parent, false)
         return ViewHolder(view)
     }
 

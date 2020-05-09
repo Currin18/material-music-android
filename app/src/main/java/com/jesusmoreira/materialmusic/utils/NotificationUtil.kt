@@ -6,20 +6,17 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
-import android.content.res.Resources
-import android.graphics.BitmapFactory
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.media.app.NotificationCompat
 import com.jesusmoreira.materialmusic.R
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService.Companion.ACTION_NEXT
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService.Companion.ACTION_PAUSE
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService.Companion.ACTION_PLAY
-import com.jesusmoreira.materialmusic.controllers.MediaPlayerService.Companion.ACTION_PREVIOUS
+import com.jesusmoreira.materialmusic.services.MediaPlayerService
+import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_NEXT
+import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_PAUSE
+import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_PLAY
+import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_PREVIOUS
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.models.PlaybackStatus
-import org.jetbrains.anko.restrictionsManager
 
 object NotificationUtil {
     private const val NOTIFICATION_ID = 1001
