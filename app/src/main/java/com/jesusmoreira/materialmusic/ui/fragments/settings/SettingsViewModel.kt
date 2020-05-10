@@ -1,13 +1,12 @@
-package com.jesusmoreira.materialmusic.ui.podcast
+package com.jesusmoreira.materialmusic.ui.fragments.settings
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.ViewModel
 
-class PodcastViewModel : ViewModel() {
-
+class SettingsViewModel : ViewModel() {
     private val _text = MutableLiveData<String>().apply {
-        value = "This is Podcast Fragment"
+        value = "This is Settings Fragment"
     }
     val text: LiveData<String> = _text
 }

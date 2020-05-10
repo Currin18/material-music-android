@@ -4,7 +4,7 @@
         xmlns:tools="http://schemas.android.com/tools"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
-        tools:context=".ui.player.PlayerFragment"
+        tools:context=".ui.fragments.player.PlayerFragment"
         tools:showIn="@layout/activity_player">
 
     <com.sothree.slidinguppanel.SlidingUpPanelLayout
@@ -204,18 +204,9 @@
                             android:layout_width="match_parent"
                             android:layout_height="wrap_content"
                             android:orientation="vertical">
-
-                        <!--                            <TextView-->
-                        <!--                                    android:layout_width="match_parent"-->
-                        <!--                                    android:layout_height="match_parent"-->
-                        <!--                                    android:gravity="center|top"-->
-                        <!--                                    android:text="The Awesome Sliding Up Panel"-->
-                        <!--                                    android:textSize="16sp" />-->
-
                         <include
                                 android:id="@+id/current_song"
                                 layout="@layout/item_list" />
-
                         <TextView
                                 android:id="@+id/player_queue_sub_header"
                                 android:layout_width="match_parent"
@@ -245,8 +236,9 @@
             android:id="@+id/smallPlayer"
             android:layout_width="match_parent"
             android:layout_height="52dp"
-            android:elevation="8dp"
+            android:elevation="0dp"
             android:background="@color/grey"
+            android:layout_marginBottom="?attr/actionBarSize"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
             app:layout_constraintEnd_toEndOf="parent">

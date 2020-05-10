@@ -1,23 +1,20 @@
-package com.jesusmoreira.materialmusic
+package com.jesusmoreira.materialmusic.ui.activities
 
 import android.content.ComponentName
-import android.content.ContentResolver
 import android.content.Intent
 import android.content.ServiceConnection
 import android.content.pm.PackageManager
-import android.database.Cursor
-import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
-import android.provider.MediaStore
 import android.view.View
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
+import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.services.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
-import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
+import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerFragment
 import com.jesusmoreira.materialmusic.utils.GeneralUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.activity_player.*
@@ -54,8 +51,6 @@ class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
                 serviceBound = false
             }
         }
-
-        loadAudio()
 
         button.setOnClickListener {
             val storage = StorageUtil(this)
@@ -116,23 +111,5 @@ class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
 
     override fun getProgress(): Int? {
         return player?.getProgress()
-    }
-
-    private fun loadAudio() {
-        val contentResolver: ContentResolver? = contentResolver
-        val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
-        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
-        val cursor: Cursor? = contentResolver?.query(uri, null, selection, null, sortOrder)
-
-        cursor?.let {
-            if (it.count > 0) {
-                audioList = arrayListOf()
-                while (cursor.moveToNext()) {
-                    audioList?.add(Audio(cursor))
-                }
-            }
-            it.close()
-        }
     }
 }

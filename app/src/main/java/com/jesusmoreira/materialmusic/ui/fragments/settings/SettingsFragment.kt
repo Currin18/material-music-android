@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.settings
+package com.jesusmoreira.materialmusic.ui.fragments.settings
 
 import android.os.Bundle
 import android.view.LayoutInflater

@@ -7,25 +7,25 @@
 
     <fragment
             android:id="@+id/navigation_library"
-            android:name="com.jesusmoreira.materialmusic.ui.library.LibraryFragment"
+            android:name="com.jesusmoreira.materialmusic.ui.fragments.library.LibraryFragment"
             android:label="@string/title_library"
             tools:layout="@layout/fragment_library"/>
 
     <fragment
             android:id="@+id/navigation_podcast"
-            android:name="com.jesusmoreira.materialmusic.ui.podcast.PodcastFragment"
+            android:name="com.jesusmoreira.materialmusic.ui.fragments.podcast.PodcastFragment"
             android:label="@string/title_podcast"
             tools:layout="@layout/fragment_podcast"/>
 
     <fragment
             android:id="@+id/navigation_folder"
-            android:name="com.jesusmoreira.materialmusic.ui.folder.FolderFragment"
+            android:name="com.jesusmoreira.materialmusic.ui.fragments.folder.FolderFragment"
             android:label="@string/title_folder"
             tools:layout="@layout/fragment_folder"/>
 
     <fragment
             android:id="@+id/navigation_settings"
-            android:name="com.jesusmoreira.materialmusic.ui.settings.SettingsFragment"
+            android:name="com.jesusmoreira.materialmusic.ui.fragments.settings.SettingsFragment"
             android:label="@string/title_settings"
             tools:layout="@layout/fragment_settings"/>
 </navigation>

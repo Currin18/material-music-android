@@ -1,9 +1,14 @@
 package com.jesusmoreira.materialmusic.utils
 
+import android.content.Context
 import android.graphics.Bitmap
+import android.graphics.Canvas
+import android.os.Build
 import android.util.Log
+import androidx.core.content.ContextCompat
+import androidx.core.graphics.drawable.DrawableCompat
 import androidx.palette.graphics.Palette
-import com.jesusmoreira.materialmusic.R
+
 
 object GraphicUtil {
     const val TAG : String = "GraphicUtil"
@@ -60,5 +65,20 @@ object GraphicUtil {
 //        val b = (color and 0xff) / 255.0f
 //        val a = (color shr 24 and 0xff) / 255.0f
 //        return "#$a$r$g$b"
+    }
+
+    fun getBitmapFromVectorDrawable(context: Context, drawableId: Int): Bitmap? {
+        ContextCompat.getDrawable(context, drawableId)?.let {
+            val drawable = DrawableCompat.wrap(it).mutate()
+            val bitmap = Bitmap.createBitmap(
+                drawable.intrinsicWidth,
+                drawable.intrinsicHeight, Bitmap.Config.ARGB_8888
+            )
+            val canvas = Canvas(bitmap)
+            drawable.setBounds(0, 0, canvas.width, canvas.height)
+            drawable.draw(canvas)
+            return bitmap
+        }
+        return null
     }
 }

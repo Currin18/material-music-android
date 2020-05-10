@@ -21,7 +21,7 @@ import android.util.Log
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.models.PlaybackStatus
-import com.jesusmoreira.materialmusic.ui.player.PlayerFragment
+import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerFragment
 import com.jesusmoreira.materialmusic.utils.NotificationUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import java.io.IOException
@@ -302,10 +302,14 @@ class MediaPlayerService : Service(),
     }
 
     override fun onCompletion(mp: MediaPlayer?) {
-        // Invoked when playback of a media source has completed
-        stopMedia()
-        // stop the service
-        stopSelf()
+        if (transportControls != null) {
+            transportControls?.skipToNext()
+        } else {
+            // Invoked when playback of a media source has completed
+            stopMedia()
+            // stop the service
+            stopSelf()
+        }
     }
 
     // Handle errors
@@ -427,10 +431,14 @@ class MediaPlayerService : Service(),
 
     // The system call this method when an activity, requests the service be started
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+
+        val oldAudioList = audioList
+
         try {
             // An audio file is passed to the service through putExtra()
 //            mediaFile = intent?.extras?.getString("media")
             // Load data from SharedPreferences
+
             val storage = StorageUtil(applicationContext)
             audioList = storage.loadAudio()
             audioIndex = storage.loadAudioIndex()
@@ -474,6 +482,11 @@ class MediaPlayerService : Service(),
             ARG_SEEK_DURATION
         ))
 
+//        if (oldAudioList != null && audioList != oldAudioList) {
+//            transportControls?.stop()
+//            transportControls?.play()
+//        }
+
         return super.onStartCommand(intent, flags, startId)
     }
 
@@ -512,7 +525,7 @@ class MediaPlayerService : Service(),
         unregisterReceiver(playNewAudio)
 
         //clear cached playlist
-        StorageUtil(getApplicationContext()).clearCachedAudioPlaylist()
+        StorageUtil(applicationContext).clearCachedAudioPlaylist()
     }
 
     class LocalBinder: Binder() {

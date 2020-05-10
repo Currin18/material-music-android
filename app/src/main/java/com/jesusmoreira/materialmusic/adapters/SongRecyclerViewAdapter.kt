@@ -9,9 +9,9 @@ import android.widget.ImageView
 import android.widget.TextView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
 
-
-import com.jesusmoreira.materialmusic.ui.library.TabSongsFragment.OnSongListFragmentInteractionListener
+import com.jesusmoreira.materialmusic.utils.GraphicUtil
 
 import kotlinx.android.synthetic.main.item_list_song.view.*
 
@@ -21,18 +21,18 @@ import kotlinx.android.synthetic.main.item_list_song.view.*
  */
 class SongRecyclerViewAdapter(
     private val context: Context,
-    private val musicList: ArrayList<Audio>,
-    private val mListener: OnSongListFragmentInteractionListener?
+    private val arrayList: ArrayList<Audio>,
+    private val listener: SongListener?
 ) : RecyclerView.Adapter<SongRecyclerViewAdapter.ViewHolder>() {
 
-    private val mOnClickListener: View.OnClickListener
+    private val onClickListener: View.OnClickListener
 
     init {
-        mOnClickListener = View.OnClickListener { v ->
+        onClickListener = View.OnClickListener { v ->
             val position = v.tag as Int
             // Notify the active callbacks interface (the activity, if the fragment is attached to
             // one) that an item has been selected.
-            mListener?.onSongClicked(musicList, position)
+            listener?.onSongClicked(arrayList, position)
         }
     }
 
@@ -43,24 +43,31 @@ class SongRecyclerViewAdapter(
     }
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        val item: Audio = musicList[position]
-        holder.titleView.text = item.title
-        holder.artistView.text = item.artist
+        arrayList[position].apply {
+            val bitmap = this.getAlbumArtBitmap(context, 100, 100)
+            if (bitmap != null) {
+                holder.albumArtView.setImageBitmap(bitmap)
+            } else {
+                val defaultBitmap = GraphicUtil.getBitmapFromVectorDrawable(context, R.drawable.ic_album_black_24dp)
+                holder.albumArtView.setImageBitmap(defaultBitmap)
+            }
 
-        item.getAlbumArtBitmap(context, 100, 100)?.let { holder.albumArtView.setImageBitmap(it) }
+            holder.titleView.text = title
+            holder.artistView.text = artist
 
-        with(holder.mView) {
-            tag = position
-            setOnClickListener(mOnClickListener)
+            with(holder.view) {
+                tag = position
+                setOnClickListener(onClickListener)
+            }
         }
     }
 
-    override fun getItemCount(): Int = musicList.size
+    override fun getItemCount(): Int = arrayList.size
 
-    inner class ViewHolder(val mView: View) : RecyclerView.ViewHolder(mView) {
-        val titleView: TextView = mView.title
-        val artistView: TextView = mView.artist
-        val albumArtView: ImageView = mView.image
+    inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
+        val titleView: TextView = view.title
+        val artistView: TextView = view.artist
+        val albumArtView: ImageView = view.image
 
         override fun toString(): String {
             return super.toString() + " '" + titleView.text + "'"

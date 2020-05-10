@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.podcast
+package com.jesusmoreira.materialmusic.ui.fragments.podcast
 
 import android.os.Bundle
 import android.view.LayoutInflater

@@ -3,8 +3,8 @@
         xmlns:android="http://schemas.android.com/apk/res/android"
         xmlns:app="http://schemas.android.com/apk/res-auto"
         xmlns:tools="http://schemas.android.com/tools"
-        android:id="@+id/listSongs"
-        android:name="com.jesusmoreira.materialmusic.ui.library.TabSongsFragment"
+        android:id="@+id/listArtists"
+        android:name="com.jesusmoreira.materialmusic.ui.library.TabArtistsFragment"
         android:layout_width="match_parent"
         android:layout_height="match_parent"
         android:layout_marginLeft="16dp"
@@ -12,5 +12,5 @@
         android:clipToPadding="false"
         android:paddingBottom="52dp"
         app:layoutManager="LinearLayoutManager"
-        tools:context=".ui.fragments.songs.TabSongsFragment"
-        tools:listitem="@layout/item_list_song"/>
+        tools:context=".ui.fragments.artists.TabArtistsFragment"
+        tools:listitem="@layout/item_list_artist"/>

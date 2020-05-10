@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.library
+package com.jesusmoreira.materialmusic.ui.fragments.library
 
 import android.os.Bundle
 import android.view.LayoutInflater
@@ -12,6 +12,9 @@ import androidx.viewpager.widget.ViewPager
 import com.google.android.material.tabs.TabLayout
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.controllers.MediaController
+import com.jesusmoreira.materialmusic.ui.fragments.albums.TabAlbumsFragment
+import com.jesusmoreira.materialmusic.ui.fragments.artists.TabArtistsFragment
+import com.jesusmoreira.materialmusic.ui.fragments.songs.TabSongsFragment
 
 class LibraryFragment : Fragment() {
 
@@ -47,22 +50,42 @@ class LibraryFragment : Fragment() {
         tabLayout.addOnTabSelectedListener(object: TabLayout.OnTabSelectedListener {
             override fun onTabReselected(tab: TabLayout.Tab?) { tab?.position?.let { viewPager.currentItem = it } }
             override fun onTabUnselected(tab: TabLayout.Tab?) {}
-            override fun onTabSelected(tab: TabLayout.Tab?) {}
+            override fun onTabSelected(tab: TabLayout.Tab?) { tab?.position?.let { viewPager.currentItem = it } }
         })
 
         return root
     }
 
-    class ViewPagerAdapter(fragmentManager: FragmentManager, private val tabLayout: TabLayout): FragmentStatePagerAdapter(fragmentManager) {
-        override fun getItem(position: Int): Fragment {
-            return when(position) {
-                0 -> TabSongsFragment.newInstance()
-                1 -> TabAlbumsFragment.newInstance()
-                else ->  TabSongsFragment.newInstance()
+    class ViewPagerAdapter(fragmentManager: FragmentManager, private val tabLayout: TabLayout):
+        FragmentStatePagerAdapter(
+            fragmentManager, FragmentStatePagerAdapter.
+            BEHAVIOR_RESUME_ONLY_CURRENT_FRAGMENT
+        ) {
+            private var tabSongsFragment: TabSongsFragment? = null
+            private var tabAlbumsFragment: TabAlbumsFragment? = null
+            private var tabArtistsFragment: TabArtistsFragment? = null
+
+            override fun getItem(position: Int): Fragment {
+                return when(position) {
+                    0 -> {
+                        if (tabSongsFragment == null)
+                            tabSongsFragment = TabSongsFragment.newInstance()
+                        tabSongsFragment!!
+                    }
+                    1 ->  {
+                        if (tabAlbumsFragment == null)
+                            tabAlbumsFragment = TabAlbumsFragment.newInstance()
+                        tabAlbumsFragment!!
+                    }
+                    2 -> {
+                        if (tabArtistsFragment == null)
+                            tabArtistsFragment = TabArtistsFragment.newInstance()
+                        tabArtistsFragment!!
+                    }
+                    else ->  TabSongsFragment.newInstance()
+                }
             }
+
+            override fun getCount(): Int = tabLayout.tabCount
         }
-
-        override fun getCount(): Int = tabLayout.tabCount
-
-    }
 }

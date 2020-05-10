@@ -35,6 +35,8 @@
                 android:textSize="18sp"
                 android:textStyle="bold"
                 android:textColor="@android:color/white"
+                android:maxLines="2"
+                android:ellipsize="end"
                 android:text="unknown"/>
         <TextView
                 android:id="@+id/albumArtist"

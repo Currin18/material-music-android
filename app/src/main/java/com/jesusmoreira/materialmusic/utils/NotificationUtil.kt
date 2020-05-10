@@ -63,6 +63,12 @@ object NotificationUtil {
             notificationManager.createNotificationChannel(channel)
         }
 
+//        val bitmap = audio?.getAlbumArtBitmap(context)
+//        val largeIcon = when {
+//            bitmap != null -> bitmap
+//            else -> GraphicUtil.getBitmapFromVectorDrawable(context, R.drawable.ic_album_black_24dp)
+//        }
+
         val notificationBuilder = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
             .setShowWhen(false)
             // Set the Notification style
@@ -72,14 +78,14 @@ object NotificationUtil {
                 // Show our playback controls in the compact notification view.
                 .setShowActionsInCompactView(0, 1, 2))
             // Set the notification color
-            .setColor(context.resources.getColor(R.color.colorPrimary, null))
+            .setColor(context.resources.getColor(R.color.grey, null))
             // Set large and small icons
             .setLargeIcon(audio?.getAlbumArtBitmap(context))
             .setSmallIcon(R.drawable.ic_headset_white_24dp)
             // Set Notification content information
             .setContentText(audio?.artist)
-            .setContentTitle(audio?.album)
-            .setContentInfo(audio?.title)
+            .setContentTitle(audio?.title)
+            .setContentInfo(audio?.album)
             // Add playback actions
             .addAction(R.drawable.ic_skip_previous_white_24dp, "previous", playbackAction(context, 3))
             .addAction(notificationAction, "pause", playOrPauseAction)

@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.folder
+package com.jesusmoreira.materialmusic.ui.fragments.folder
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.player
+package com.jesusmoreira.materialmusic.ui.fragments.player
 
 import androidx.lifecycle.ViewModel
 

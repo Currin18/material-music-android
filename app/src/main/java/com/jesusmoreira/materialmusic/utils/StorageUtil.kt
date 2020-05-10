@@ -48,4 +48,14 @@ class StorageUtil(val context: Context) {
         editor.clear()
         editor.commit()
     }
+
+    companion object {
+        fun audioListToString(audioList: ArrayList<Audio>?): String {
+            return Gson().toJson(audioList)
+        }
+
+        fun audioListFromString(json: String?): ArrayList<Audio> {
+            return Gson().fromJson(json, object : TypeToken<ArrayList<Audio>?>() {}.type)
+        }
+    }
 }

@@ -4,21 +4,6 @@
         xmlns:app="http://schemas.android.com/apk/res-auto"
         android:layout_width="match_parent"
         android:layout_height="match_parent">
-
-<!--    <TextView-->
-<!--            android:id="@+id/text_home"-->
-<!--            android:layout_width="match_parent"-->
-<!--            android:layout_height="wrap_content"-->
-<!--            android:layout_marginStart="8dp"-->
-<!--            android:layout_marginTop="8dp"-->
-<!--            android:layout_marginEnd="8dp"-->
-<!--            android:textAlignment="center"-->
-<!--            android:textSize="20sp"-->
-<!--            app:layout_constraintEnd_toEndOf="parent"-->
-<!--            app:layout_constraintStart_toStartOf="parent"-->
-<!--            app:layout_constraintTop_toTopOf="parent"-->
-<!--    android:visibility="gone"/>-->
-
     <com.google.android.material.tabs.TabLayout
             android:id="@+id/tab_layout"
             android:layout_width="match_parent"
@@ -27,7 +12,7 @@
             android:background="?attr/colorPrimary"
             android:theme="@style/ThemeOverlay.AppCompat.Dark.ActionBar"
             android:elevation="8dp"
-            android:paddingStart="52dp"
+            android:paddingStart="0dp"
             android:paddingEnd="0dp"
             app:tabPaddingTop="0dp"
             app:tabPaddingBottom="0dp"
@@ -58,11 +43,11 @@
                 android:layout_height="match_parent"
                 android:text="@string/tab_artists_text" />
 
-        <com.google.android.material.tabs.TabItem
-                android:id="@+id/tab_playlists"
-                android:layout_width="wrap_content"
-                android:layout_height="match_parent"
-                android:text="@string/tab_playlists_text" />
+<!--        <com.google.android.material.tabs.TabItem-->
+<!--                android:id="@+id/tab_playlists"-->
+<!--                android:layout_width="wrap_content"-->
+<!--                android:layout_height="match_parent"-->
+<!--                android:text="@string/tab_playlists_text" />-->
     </com.google.android.material.tabs.TabLayout>
 
     <androidx.viewpager.widget.ViewPager

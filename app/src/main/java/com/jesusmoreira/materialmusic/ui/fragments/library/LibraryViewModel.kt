@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.library
+package com.jesusmoreira.materialmusic.ui.fragments.library
 
 import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData

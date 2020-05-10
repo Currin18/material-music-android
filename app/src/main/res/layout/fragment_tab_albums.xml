@@ -12,5 +12,5 @@
         android:clipToPadding="false"
         android:paddingBottom="52dp"
         app:layoutManager="GridLayoutManager"
-        tools:context=".ui.library.TabAlbumsFragment"
+        tools:context=".ui.fragments.albums.TabAlbumsFragment"
         tools:listitem="@layout/item_list_album"/>

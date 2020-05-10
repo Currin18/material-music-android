@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.ui.player
+package com.jesusmoreira.materialmusic.ui.fragments.player
 
 import android.app.PendingIntent
 import android.content.*
@@ -41,18 +41,18 @@ class PlayerFragment : Fragment() {
         private const val ARG_AUDIO_INDEX: String = "ARG_AUDIO_INDEX"
         private const val ARG_PLAY: String = "ARG_PLAY"
 
-        const val PLAY: String = "com.jesusmoreira.materialmusic.PlayerActivity.PLAY"
-        const val PAUSE: String = "com.jesusmoreira.materialmusic.PlayerActivity.PAUSE"
-        const val STOP: String = "com.jesusmoreira.materialmusic.PlayerActivity.STOP"
-        const val PREVIOUS: String = "com.jesusmoreira.materialmusic.PlayerActivity.PREVIOUS"
-        const val NEXT: String = "com.jesusmoreira.materialmusic.PlayerActivity.NEXT"
+        const val PLAY: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PLAY"
+        const val PAUSE: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PAUSE"
+        const val STOP: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.STOP"
+        const val PREVIOUS: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PREVIOUS"
+        const val NEXT: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.NEXT"
 
         private var audioList: ArrayList<Audio>? = null
         private var audioIndex: Int = 0
 
         fun newInstance(audioList: ArrayList<Audio>, audioIndex: Int, play: Boolean): PlayerFragment {
             val args = Bundle()
-            args.putString(ARG_AUDIO_LIST, Gson().toJson(audioList))
+            args.putString(ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
             args.putInt(ARG_AUDIO_INDEX, audioIndex)
             args.putBoolean(ARG_PLAY, play)
 
@@ -150,10 +150,7 @@ class PlayerFragment : Fragment() {
             ViewModelProvider(this).get(PlayerViewModel::class.java)
 
         arguments?.getString(ARG_AUDIO_LIST)?.let {
-            audioList = Gson().fromJson(
-                it,
-                object : com.google.gson.reflect.TypeToken<ArrayList<Audio>?>() {}.type
-            )
+            audioList = StorageUtil.audioListFromString(it)
         }
         arguments?.getInt(ARG_AUDIO_INDEX)?.let { audioIndex = it }
 
