@@ -1,4 +1,4 @@
-package com.jesusmoreira.materialmusic.controllers
+package com.jesusmoreira.materialmusic.services
 
 import android.app.Service
 import android.content.Context
@@ -8,6 +8,7 @@ import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
 import android.media.MediaPlayer
+import android.net.Uri
 import android.os.*
 import android.util.Log
 import java.io.IOException
@@ -165,17 +166,6 @@ class PlaybackService: Service() {
         }
     }
 
-    interface IPlaybackService {
-        fun stop()
-        fun play()
-        fun pause()
-        fun openFile(path: String): Boolean
-        fun getDuration(): Long
-        fun getPosition(): Long
-        fun seek(position: Long)
-        fun isPlaying(): Boolean
-    }
-
     /**
      * Provides an interface for dealing with playback of audio files
      */
@@ -232,18 +222,26 @@ class PlaybackService: Service() {
 
         private fun setDataSource(mediaPlayer: MediaPlayer, path: String): Boolean {
             try {
-                val afd: AssetFileDescriptor = assets.openFd(path)
+//                val afd: AssetFileDescriptor = assets.openFd(path)
                 mediaPlayer.reset()
-                mediaPlayer.setOnPreparedListener(null)
-                mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
-                afd.close()
-                mediaPlayer.setAudioAttributes(AudioAttributes.Builder()
-                    .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
-                    .build())
+                // TODO: implement OnPreparedListener
+                mediaPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener {
+                    start()
+                })
 //                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
-                mediaPlayer.prepare()
+                mediaPlayer.setAudioAttributes(
+                    AudioAttributes.Builder()
+                        .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                        .build())
+//                mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
+//                afd.close()
+                mediaPlayer.setDataSource(applicationContext, Uri.parse(path))
+//                mediaPlayer.prepare()
+                mediaPlayer.prepareAsync()
+
                 mediaPlayer.setOnCompletionListener(this)
                 mediaPlayer.setOnErrorListener(this)
+
             } catch (e: IOException) {
                 e.printStackTrace()
                 return false
@@ -357,7 +355,7 @@ class PlaybackService: Service() {
 
     }
 
-    private inner class ServiceStub constructor(service: PlaybackService) : Binder(), IPlaybackService {
+    private inner class ServiceStub(service: PlaybackService) : IPlaybackService.Stub() {
         private var _service: WeakReference<PlaybackService>? = null
 
         init {

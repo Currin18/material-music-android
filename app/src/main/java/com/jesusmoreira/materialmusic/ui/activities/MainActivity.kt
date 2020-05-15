@@ -3,10 +3,12 @@ package com.jesusmoreira.materialmusic.ui.activities
 import android.content.*
 import android.content.pm.PackageManager
 import android.database.Cursor
+import android.media.AudioManager
 import android.net.Uri
 import android.os.Bundle
 import android.os.IBinder
 import android.provider.MediaStore
+import android.util.Log
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -26,10 +28,12 @@ import com.jesusmoreira.materialmusic.ui.fragments.songs.TabSongsFragment
 import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerFragment
 import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
 import com.jesusmoreira.materialmusic.utils.GeneralUtil
+import com.jesusmoreira.materialmusic.utils.PlaybackUtil
+import com.jesusmoreira.materialmusic.utils.ServiceUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.activity_player.*
 
-class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongListener, AlbumListener, ArtistListener {
+class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.PlayerListener,  SongListener, AlbumListener, ArtistListener {
 
     companion object {
         const val SERVICE_STATE: String = "ServiceState"
@@ -49,6 +53,8 @@ class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongLi
 
     private var player: MediaPlayerService? = null
     private var serviceConnection : ServiceConnection? = null
+
+    private var token: ServiceUtil.ServiceToken? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -103,18 +109,36 @@ class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongLi
             val index: Int = getInt(ARG_INDEX)
 
             if (!audioList.isNullOrEmpty()) {
-                startPlayer(audioList, index)
+//                startPlayer(audioList, index)
             }
         }
+
+        volumeControlStream = AudioManager.STREAM_MUSIC
+
+        token = ServiceUtil.bindToService(this, this)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+
+        token?.let {
+            ServiceUtil.unbindFromService(it)
+            token = null
+        }
+
         if (serviceBound) {
             serviceConnection?.let { unbindService(it) }
             // service is active
             player?.stopSelf()
         }
+    }
+
+    override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
+        Log.i("MainActivity", "Service connected: $name")
+    }
+
+    override fun onServiceDisconnected(name: ComponentName?) {
+        Log.i("MainActivity", "Service disconnected: $name")
     }
 
     override fun onSaveInstanceState(outState: Bundle) {
@@ -173,7 +197,17 @@ class MainActivity : AppCompatActivity(), PlayerFragment.PlayerListener,  SongLi
     }
 
     override fun onSongClicked(audioList: ArrayList<Audio>, position: Int) {
-        startPlayer(audioList, position)
+//        startPlayer(audioList, position)
+        with(PlaybackUtil) {
+            if (isPlaying()) {
+                stop()
+            }
+            openFile(audioList[position].uri.toString())
+
+            play()
+        }
+
+
     }
 
     override fun onAlbumClicked(album: Album) {
