@@ -10,7 +10,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
 import android.util.Log
-import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_NEXT
+import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_COMPLETION
 import java.io.IOException
 import java.lang.ref.WeakReference
 
@@ -200,6 +200,7 @@ class PlaybackService: Service() {
         fun stop() {
             player?.reset()
             isPlayerInitialized = false
+            isSupposedToBePlaying = false
             Log.i(TAG, "State: STOPPED")
         }
 
@@ -275,9 +276,10 @@ class PlaybackService: Service() {
         }
 
         override fun onCompletion(mp: MediaPlayer?) {
-            player?.release()
-            player = null
-            sendBroadcast(Intent(ACTION_NEXT))
+//            player?.release()
+//            player = null
+            stop()
+            sendBroadcast(Intent(ACTION_COMPLETION))
         }
 
         override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {

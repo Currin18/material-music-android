@@ -11,7 +11,8 @@ import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerListener
 import kotlinx.android.synthetic.main.item_list.view.*
 
 class PlayListRecyclerViewAdapter(
-    private var playList: ArrayList<Audio>,
+    var playList: ArrayList<Audio>,
+    var index: Int,
     private val listener: PlayerListener?
 ): RecyclerView.Adapter<PlayListRecyclerViewAdapter.ViewHolder>() {
 
@@ -37,8 +38,14 @@ class PlayListRecyclerViewAdapter(
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = playList[position]
 
-        holder.title?.text = item.title
-        "${item.album ?: "unknown"} · ${item.artist ?: "unknown"}".let { holder.text?.text = it }
+        holder.dragView.visibility = View.GONE
+        holder.imageText.apply {
+            visibility = View.VISIBLE
+            text = "${position - index}"
+        }
+
+        holder.title.text = item.title
+        "${item.album ?: "unknown"} · ${item.artist ?: "unknown"}".let { holder.text.text = it }
 
         with(holder.view) {
             tag = position
@@ -47,7 +54,9 @@ class PlayListRecyclerViewAdapter(
     }
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        var title: TextView? = view.title
-        var text: TextView? = view.text
+        val dragView: View = view.drag_view
+        val imageText: TextView = view.image_text
+        var title: TextView = view.title
+        var text: TextView = view.text
     }
 }

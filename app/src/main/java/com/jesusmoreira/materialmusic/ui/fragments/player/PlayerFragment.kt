@@ -18,7 +18,8 @@ import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.PlayListRecyclerViewAdapter
 import com.jesusmoreira.materialmusic.models.Audio
-import com.jesusmoreira.materialmusic.models.ShuffleStatus
+import com.jesusmoreira.materialmusic.models.RepeatMode
+import com.jesusmoreira.materialmusic.models.ShuffleMode
 import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.fragment_player.*
@@ -36,38 +37,42 @@ class PlayerFragment : Fragment() {
         private const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
         private const val ARG_AUDIO_INDEX: String = "ARG_AUDIO_INDEX"
         private const val ARG_MINIMIZED: String = "ARG_MINIMIZED"
+        private const val ARG_PAUSED: String = "ARG_PAUSED"
         private const val ARG_SHUFFLE: String = "ARG_SHUFFLE"
         private const val ARG_REPEAT: String = "ARG_REPEAT"
-
-        private var audioList: ArrayList<Audio>? = null
-        private var audioIndex: Int = 0
 
         fun newInstance(
             audioList: ArrayList<Audio>,
             audioIndex: Int,
             minimized: Boolean = false,
+            paused: Boolean = false,
             shuffle: Int = 0,
             repeat: Int = 0
-        ): PlayerFragment {
-            val args = Bundle()
-            args.putString(ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
-            args.putInt(ARG_AUDIO_INDEX, audioIndex)
-            args.putBoolean(ARG_MINIMIZED, minimized)
-            args.putInt(ARG_SHUFFLE, shuffle)
-            args.putInt(ARG_REPEAT, repeat)
-
-            val fragment = PlayerFragment()
-            fragment.arguments = args
-
-            return fragment
+        ): PlayerFragment = PlayerFragment().apply {
+            arguments = Bundle().apply {
+                putString(ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
+                putInt(ARG_AUDIO_INDEX, audioIndex)
+                putBoolean(ARG_MINIMIZED, minimized)
+                putBoolean(ARG_PAUSED, paused)
+                putInt(ARG_SHUFFLE, shuffle)
+                putInt(ARG_REPEAT, repeat)
+            }
         }
     }
 
     private var isPlaying: Boolean? = null
     var isMinimized: Boolean = false
-    var shuffleStatus: ShuffleStatus = ShuffleStatus.NO_SHUFFLE
+    var isPaused: Boolean = false
+    var shuffleMode: ShuffleMode = ShuffleMode.NO_SHUFFLE
+    var repeatMode: RepeatMode = RepeatMode.NO_REPEAT
 
     private var palette: Palette? = null
+
+    private var audioList: ArrayList<Audio>? = null
+    private var audioIndex: Int = 0
+
+    private var playListAdapter: PlayListRecyclerViewAdapter? = null
+    private var recycler: RecyclerView? = null
 
     private lateinit var viewModel: PlayerViewModel
     private var playerListener: PlayerListener? = null
@@ -99,10 +104,20 @@ class PlayerFragment : Fragment() {
             if (containsKey(ARG_MINIMIZED))
                 isMinimized = getBoolean(ARG_MINIMIZED)
 
+            if (containsKey(ARG_PAUSED))
+                isPaused = getBoolean(ARG_PAUSED)
+
             if (containsKey(ARG_SHUFFLE))
-                shuffleStatus = when (getInt(ARG_SHUFFLE)) {
-                    1 -> ShuffleStatus.SHUFFLE
-                    else -> ShuffleStatus.NO_SHUFFLE
+                shuffleMode = when (getInt(ARG_SHUFFLE)) {
+                    ShuffleMode.SHUFFLE.value -> ShuffleMode.SHUFFLE
+                    else -> ShuffleMode.NO_SHUFFLE
+                }
+
+            if (containsKey(ARG_REPEAT))
+                repeatMode = when (getInt(ARG_REPEAT)) {
+                    RepeatMode.REPEAT_ALL.value -> RepeatMode.REPEAT_ALL
+                    RepeatMode.REPEAT_ONE.value -> RepeatMode.REPEAT_ONE
+                    else -> RepeatMode.NO_REPEAT
                 }
         }
     }
@@ -155,10 +170,10 @@ class PlayerFragment : Fragment() {
             onSkipToNext()
         }
         view.shuffle.setOnClickListener {
-            playerListener?.onChangeShuffle(when(shuffleStatus) {
-                ShuffleStatus.NO_SHUFFLE -> ShuffleStatus.SHUFFLE
-                ShuffleStatus.SHUFFLE -> ShuffleStatus.NO_SHUFFLE
-            })
+            onShuffle()
+        }
+        view.repeat.setOnClickListener {
+            onRepeat()
         }
 
         view.smallPlayer.setOnClickListener {
@@ -175,9 +190,23 @@ class PlayerFragment : Fragment() {
             bigPlayer.visibility = View.GONE
             smallPlayer.visibility = View.GONE
 
-            shuffle.setImageResource(when (shuffleStatus) {
-                ShuffleStatus.NO_SHUFFLE -> R.drawable.ic_shuffle_disabled_white_24dp
-                ShuffleStatus.SHUFFLE -> R.drawable.ic_shuffle_white_24dp
+            if (isPaused) {
+                playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+                miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+            } else {
+                playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+                miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+            }
+
+            shuffle.setImageResource(when (shuffleMode) {
+                ShuffleMode.NO_SHUFFLE -> R.drawable.ic_shuffle_disabled_white_24dp
+                ShuffleMode.SHUFFLE -> R.drawable.ic_shuffle_white_24dp
+            })
+
+            repeat.setImageResource(when (repeatMode) {
+                RepeatMode.NO_REPEAT -> R.drawable.ic_repeat_off_white_24dp
+                RepeatMode.REPEAT_ALL -> R.drawable.ic_repeat_white_24dp
+                RepeatMode.REPEAT_ONE -> R.drawable.ic_repeat_one_white_24dp
             })
 
             audioList?.get(audioIndex)?.let { audio ->
@@ -200,7 +229,7 @@ class PlayerFragment : Fragment() {
                                 val backgroundColor = GraphicUtil.getColorFromPalette(palette)
                                 if (backgroundColor != null) {
                                     Log.d(TAG, "BackgroundColor: ${GraphicUtil.intToRGB(backgroundColor)}")
-                                    smallPlayerBg.setBackgroundColor(backgroundColor)
+//                                    smallPlayerBg.setBackgroundColor(backgroundColor)
                                     bigPlayerBg.setBackgroundColor(backgroundColor)
                                 }
 
@@ -226,15 +255,18 @@ class PlayerFragment : Fragment() {
             }
 
             audioList?.let {
-                val adapter = PlayListRecyclerViewAdapter(it, playerListener)
-                val recycler = player_recycler_view as RecyclerView
-                recycler.setHasFixedSize(true)
-                recycler.layoutManager = LinearLayoutManager(context)
-                recycler.adapter = adapter
-                recycler.scrollToPosition(when {
-                    audioIndex + 1 < it.size -> audioIndex + 1
-                    else -> it.size - 1
-                })
+                playListAdapter = PlayListRecyclerViewAdapter(it, audioIndex, playerListener)
+
+                recycler = player_recycler_view as RecyclerView
+                recycler?.apply {
+                    setHasFixedSize(true)
+                    layoutManager = LinearLayoutManager(context)
+                    adapter = playListAdapter
+                    scrollToPosition(when {
+                        audioIndex + 1 < it.size -> audioIndex + 1
+                        else -> it.size - 1
+                    })
+                }
             }
         }
     }
@@ -252,11 +284,13 @@ class PlayerFragment : Fragment() {
     fun play() {
         playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
         miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+        isPaused = false
     }
 
     fun pause() {
         playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
         miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+        isPaused = true
     }
 
     private fun onPlayOrPause() {
@@ -279,6 +313,40 @@ class PlayerFragment : Fragment() {
         playerListener?.onSeekTo(progress)
     }
 
+    private fun onShuffle() {
+        shuffleMode = when(shuffleMode) {
+            ShuffleMode.NO_SHUFFLE -> {
+                view?.shuffle?.setImageResource(R.drawable.ic_shuffle_white_24dp)
+                ShuffleMode.SHUFFLE
+            }
+            ShuffleMode.SHUFFLE -> {
+                view?.shuffle?.setImageResource(R.drawable.ic_shuffle_disabled_white_24dp)
+                ShuffleMode.NO_SHUFFLE
+            }
+        }
+
+        playerListener?.onChangeShuffle(shuffleMode)
+    }
+
+    private fun onRepeat() {
+        repeatMode = when(repeatMode) {
+            RepeatMode.NO_REPEAT -> {
+                view?.repeat?.setImageResource(R.drawable.ic_repeat_white_24dp)
+                RepeatMode.REPEAT_ALL
+            }
+            RepeatMode.REPEAT_ALL -> {
+                view?.repeat?.setImageResource(R.drawable.ic_repeat_one_white_24dp)
+                RepeatMode.REPEAT_ONE
+            }
+            RepeatMode.REPEAT_ONE -> {
+                view?.repeat?.setImageResource(R.drawable.ic_repeat_off_white_24dp)
+                RepeatMode.NO_REPEAT
+            }
+        }
+
+        playerListener?.onChangeRepeat(repeatMode)
+    }
+
     fun minimize() {
         isMinimized = true
         view?.bigPlayer?.visibility = View.GONE
@@ -289,5 +357,27 @@ class PlayerFragment : Fragment() {
         isMinimized = false
         view?.bigPlayer?.visibility = View.VISIBLE
         view?.smallPlayer?.visibility = View.GONE
+    }
+
+    fun updatePlaylist(list: ArrayList<Audio>, position: Int) {
+
+        audioList = list
+        audioIndex = position
+
+        audioList?.let {
+            playListAdapter?.playList = it
+            playListAdapter?.index = audioIndex
+            playListAdapter?.notifyDataSetChanged()
+
+            val scrollPosition = when {
+                audioIndex + 1 < it.size -> audioIndex + 1
+                else -> it.size - 1
+            }
+
+            Log.d(TAG, "ScrollPosition: $scrollPosition")
+
+//            recycler?.scrollToPosition(0)
+            recycler?.scrollToPosition(scrollPosition)
+        }
     }
 }

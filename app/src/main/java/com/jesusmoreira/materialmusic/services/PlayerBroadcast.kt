@@ -10,6 +10,7 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
         const val ACTION_PLAY_OR_PAUSE: String = "PlayerBroadcast.ACTION_PLAY_OR_PAUSE"
         const val ACTION_PREVIOUS: String = "PlayerBroadcast.ACTION_PREVIOUS"
         const val ACTION_NEXT: String = "PlayerBroadcast.ACTION_NEXT"
+        const val ACTION_COMPLETION: String = "PlayerBroadcast.ACTION_COMPLETION"
     }
 
     var isRegistered = false
@@ -26,6 +27,9 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
                 intent.action.equals(ACTION_NEXT) -> {
                     onActionNext()
                 }
+                intent.action.equals(ACTION_COMPLETION) -> {
+                    onCompletion()
+                }
             }
         }
     }
@@ -35,6 +39,7 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
             addAction(ACTION_PLAY_OR_PAUSE)
             addAction(ACTION_PREVIOUS)
             addAction(ACTION_NEXT)
+            addAction(ACTION_COMPLETION)
         })
         isRegistered = true
     }
@@ -47,4 +52,5 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
     abstract fun onActionPlayOrPause()
     abstract fun onActionPrevious()
     abstract fun onActionNext()
+    abstract fun onCompletion()
 }

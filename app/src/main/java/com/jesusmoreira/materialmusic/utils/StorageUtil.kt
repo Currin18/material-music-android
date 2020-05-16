@@ -9,7 +9,21 @@ import java.lang.reflect.Type
 
 
 class StorageUtil(val context: Context) {
-    private val STORAGE = " com.valdioveliu.valdio.audioplayer.STORAGE"
+    companion object {
+        private const val STORAGE: String = "StorageUtil.STORAGE"
+
+        fun audioListToString(audioList: ArrayList<Audio>?): String {
+            return Gson().toJson(audioList)
+        }
+
+        fun audioListFromString(json: String?): ArrayList<Audio> {
+            return when (json) {
+                null -> arrayListOf()
+                else -> Gson().fromJson(json, object : TypeToken<ArrayList<Audio>?>() {}.type)
+            }
+        }
+    }
+
     private var preferences: SharedPreferences? = null
 
     fun storeAudio(arrayList: ArrayList<Audio>?) {
@@ -47,15 +61,5 @@ class StorageUtil(val context: Context) {
         val editor = preferences!!.edit()
         editor.clear()
         editor.commit()
-    }
-
-    companion object {
-        fun audioListToString(audioList: ArrayList<Audio>?): String {
-            return Gson().toJson(audioList)
-        }
-
-        fun audioListFromString(json: String?): ArrayList<Audio> {
-            return Gson().fromJson(json, object : TypeToken<ArrayList<Audio>?>() {}.type)
-        }
     }
 }

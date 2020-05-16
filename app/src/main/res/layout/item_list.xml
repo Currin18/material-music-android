@@ -7,18 +7,15 @@
         android:foreground="@drawable/rect_selector"
         tools:ignore="UnusedAttribute">
 
-<!--    <com.kabouzeid.gramophone.views.IconImageView-->
-<!--            android:id="@+id/drag_view"-->
-<!--            android:layout_width="wrap_content"-->
-<!--            android:layout_height="match_parent"-->
-<!--            android:layout_gravity="center_vertical|start"-->
-<!--            android:layout_marginLeft="-8dp"-->
-<!--            android:layout_marginStart="-8dp"-->
-<!--            android:tint="?attr/iconColor"-->
-<!--            android:tintMode="src_in"-->
-<!--            android:visibility="gone"-->
-<!--            app:srcCompat="@drawable/ic_drag_vertical_white_24dp"-->
-<!--            tools:ignore="ContentDescription" />-->
+    <ImageView
+            android:id="@+id/drag_view"
+            android:layout_width="wrap_content"
+            android:layout_height="match_parent"
+            android:layout_gravity="center_vertical|start"
+            android:layout_marginStart="24dp"
+            android:tintMode="src_in"
+            app:srcCompat="@drawable/ic_volume_up_black_24dp"
+            tools:ignore="ContentDescription" />
 
     <LinearLayout
             android:layout_width="match_parent"
@@ -85,11 +82,16 @@
                     android:textColor="?android:textColorSecondary" />
         </LinearLayout>
 
-<!--        <com.kabouzeid.gramophone.views.IconImageView-->
-<!--                android:id="@+id/menu"-->
-<!--                style="@style/OverFlowButton"-->
-<!--                android:layout_gravity="center_vertical"-->
-<!--                tools:ignore="ContentDescription" />-->
+        <ImageView
+                android:visibility="invisible"
+                android:id="@+id/menu"
+                android:layout_width="wrap_content"
+                android:layout_height="match_parent"
+                android:layout_gravity="center_vertical"
+                android:layout_marginEnd="8dp"
+                android:src="@drawable/ic_more_vert_black_24dp"
+                tools:ignore="ContentDescription" />
+<!--        style="@style/OverFlowButton"-->
 
     </LinearLayout>
 

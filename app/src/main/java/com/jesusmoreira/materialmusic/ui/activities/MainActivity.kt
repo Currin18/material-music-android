@@ -48,7 +48,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
     private var audioList: ArrayList<Audio> = arrayListOf()
     private var audioListBackup: ArrayList<Audio> = arrayListOf()
     private var audioIndex: Int = 0
-    private var shuffleMode: ShuffleStatus = ShuffleStatus.NO_SHUFFLE
+    private var shuffleMode: ShuffleMode = ShuffleMode.NO_SHUFFLE
+    private var repeatMode: RepeatMode = RepeatMode.NO_REPEAT
 
     private var token: ServiceUtil.ServiceToken? = null
 
@@ -70,6 +71,27 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         override fun onActionNext() {
             onSkipToNext()
         }
+
+        override fun onCompletion() {
+            when(repeatMode) {
+                RepeatMode.NO_REPEAT -> {
+                    if (audioIndex + 1 < audioList.size) onSkipToNext()
+                    else {
+                        audioIndex = 0
+//                        onSeekTo(0)
+                        startPlayer(audioList, audioIndex, paused = true)
+                    }
+                }
+                RepeatMode.REPEAT_ALL -> {
+                    onSkipToNext()
+                }
+                RepeatMode.REPEAT_ONE -> {
+                    audioIndex--
+                    onSkipToNext()
+
+                }
+            }
+        }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -89,6 +111,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
             )
         )
         setSupportActionBar(toolbar)
+        supportActionBar?.title = getString(R.string.title_activity_main)
 //        setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
@@ -105,9 +128,26 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
 
         mediaSession = MediaSessionCompat(this@MainActivity, "MediaSession")
         playerBroadcast.registerReceiver(this@MainActivity)
+
+        PreferenceUtil.apply {
+            audioList = StorageUtil.audioListFromString(getAudioList(this@MainActivity))
+            audioListBackup = StorageUtil.audioListFromString(getAudioListBackup(this@MainActivity))
+            audioIndex = getAudioIndex(this@MainActivity) ?: 0
+            shuffleMode = GeneralUtil.shuffleModeFromInt(getShuffleMode(this@MainActivity))
+            repeatMode = GeneralUtil.repeatModeFromInt(getRepeatMode(this@MainActivity))
+        }
     }
 
     override fun onDestroy() {
+        PreferenceUtil.apply {
+            setAudioList(this@MainActivity, StorageUtil.audioListToString(audioList))
+            setAudioListBackup(this@MainActivity, StorageUtil.audioListToString(audioListBackup))
+            setAudioIndex(this@MainActivity, audioIndex)
+            setShuffleMode(this@MainActivity, shuffleMode.value)
+            setRepeatMode(this@MainActivity, repeatMode.value)
+        }
+
+
         NotificationUtil.removeNotification(this@MainActivity)
         playerBroadcast.unregisterReceiver(this@MainActivity)
 
@@ -123,6 +163,10 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         Log.i(TAG, "Service connected: $name")
+        if (audioList.isNotEmpty()) startPlayer(audioList, audioIndex,
+            minimized = true,
+            paused = true
+        )
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
@@ -222,25 +266,30 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         return PlaybackUtil.getPosition().toInt()
     }
 
-    override fun onChangeShuffle(shuffleStatus: ShuffleStatus) {
-        shuffleMode = shuffleStatus
+    override fun onChangeShuffle(shuffle: ShuffleMode) {
+        shuffleMode = shuffle
         when (shuffleMode) {
-            ShuffleStatus.NO_SHUFFLE -> {
+            ShuffleMode.NO_SHUFFLE -> {
                 audioIndex = audioListBackup.indexOf(audioList[audioIndex])
                 audioList = audioListBackup
             }
-            ShuffleStatus.SHUFFLE -> {
+            ShuffleMode.SHUFFLE -> {
                 audioListBackup = audioList
                 audioList = audioList.shuffled() as ArrayList<Audio>
                 audioIndex = this.audioList.indexOf(audioListBackup[audioIndex])
             }
         }
 
-        startPlayer(audioList, audioIndex)
+//        startPlayer(audioList, audioIndex)
+        playerFragment?.updatePlaylist(audioList, audioIndex)
+    }
+
+    override fun onChangeRepeat(repeat: RepeatMode) {
+        repeatMode = repeat
     }
 
     override fun onSongClicked(audioList: ArrayList<Audio>, position: Int, preventShuffle: Boolean) {
-        if (shuffleMode == ShuffleStatus.SHUFFLE && !preventShuffle) {
+        if (shuffleMode == ShuffleMode.SHUFFLE && !preventShuffle) {
             audioListBackup = audioList
             this.audioList = audioList.shuffled() as ArrayList<Audio>
             audioIndex = this.audioList.indexOf(audioList[position])
@@ -259,7 +308,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         startActivityForResult(ArtistDetailActivity.newIntent(applicationContext, artist), AUDIO_LIST_REQUEST)
     }
 
-    private fun startPlayer(list: ArrayList<Audio>, position: Int) {
+    private fun startPlayer(list: ArrayList<Audio>, position: Int, minimized: Boolean = false, paused: Boolean = false) {
         audioList = list
         audioIndex = position
 
@@ -268,7 +317,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         }
         PlaybackUtil.openFile(audioList[audioIndex].uri.toString())
 
-        PlaybackUtil.play()
+        if (!paused) {
+            PlaybackUtil.play()
+        }
 
         NotificationUtil.buildNotification(
             this@MainActivity,
@@ -277,7 +328,14 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
             PlaybackStatus.PLAYING
         )
 
-        with(PlayerFragment.newInstance(audioList, audioIndex, false, shuffleMode.value)) {
+        PlayerFragment.newInstance(
+            audioList,
+            audioIndex,
+            minimized,
+            paused,
+            shuffleMode.value,
+            repeatMode.value
+        ).apply {
             playerFragment = this
             supportFragmentManager.beginTransaction()
                 .replace(R.id.player, this)

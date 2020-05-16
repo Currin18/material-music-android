@@ -67,6 +67,7 @@
                             app:layout_constraintStart_toStartOf="parent"
                             android:layout_marginEnd="16dp"/>
                     <ImageView
+                            android:visibility="gone"
                             android:id="@+id/playerAppOptions"
                             android:layout_width="wrap_content"
                             android:layout_height="wrap_content"
@@ -238,7 +239,7 @@
             android:layout_width="match_parent"
             android:layout_height="52dp"
             android:elevation="0dp"
-            android:background="@color/grey"
+            android:background="@color/primaryColor"
             android:layout_marginBottom="?attr/actionBarSize"
             app:layout_constraintBottom_toBottomOf="parent"
             app:layout_constraintStart_toStartOf="parent"
