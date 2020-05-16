@@ -16,7 +16,8 @@ import kotlinx.android.synthetic.main.item_list_album.view.*
 class AlbumRecyclerViewAdapter(
     private val context: Context,
     private val arrayList: ArrayList<Album>,
-    private val listener: AlbumListener?
+    private val listener: AlbumListener?,
+    private val small: Boolean = false
 ): RecyclerView.Adapter<AlbumRecyclerViewAdapter.ViewHolder>() {
 
     private val onClickListener: View.OnClickListener
@@ -32,7 +33,11 @@ class AlbumRecyclerViewAdapter(
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(R.layout.item_list_album, parent, false)
+            .inflate(
+                if (small) R.layout.item_list_album_small else R.layout.item_list_album,
+                parent,
+                false
+            )
 
         return ViewHolder(view)
     }

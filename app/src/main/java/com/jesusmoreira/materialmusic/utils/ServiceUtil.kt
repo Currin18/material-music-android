@@ -12,7 +12,7 @@ import java.util.*
  */
 object ServiceUtil {
 
-    const val TAG: String = "ServiceUtil"
+//    const val TAG: String = "ServiceUtil"
 
     var sService: IPlaybackService? = null
 
@@ -26,13 +26,13 @@ object ServiceUtil {
     fun bindToService(context: Context, callback: ServiceConnection): ServiceToken? {
         val realActivity: Activity = (context as Activity).parent ?: context
 
-        val contextWrapper: ContextWrapper = ContextWrapper(realActivity)
+        val contextWrapper = ContextWrapper(realActivity)
         contextWrapper.startService(Intent(contextWrapper, PlaybackService::class.java))
-        val binder: ServiceBinder = ServiceBinder(callback)
+        val binder = ServiceBinder(callback)
         if (contextWrapper.bindService(
                 Intent().setClass(contextWrapper, PlaybackService::class.java),
                 binder, 0)) {
-            sConnectionMap.put(contextWrapper, binder)
+            sConnectionMap[contextWrapper] = binder
             return ServiceToken(contextWrapper)
         }
         return null

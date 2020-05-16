@@ -11,17 +11,16 @@ import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.SeekBar
-import android.widget.Toast
 import androidx.fragment.app.Fragment
 import androidx.lifecycle.ViewModelProvider
 import androidx.palette.graphics.Palette
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
-import com.google.gson.Gson
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.PlayListRecyclerViewAdapter
 import com.jesusmoreira.materialmusic.services.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
 import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.fragment_player.*
@@ -39,7 +38,7 @@ class PlayerFragment : Fragment() {
 
         private const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
         private const val ARG_AUDIO_INDEX: String = "ARG_AUDIO_INDEX"
-        private const val ARG_PLAY: String = "ARG_PLAY"
+        private const val ARG_MINIMIZED: String = "ARG_MINIMIZED"
 
         const val PLAY: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PLAY"
         const val PAUSE: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PAUSE"
@@ -50,11 +49,11 @@ class PlayerFragment : Fragment() {
         private var audioList: ArrayList<Audio>? = null
         private var audioIndex: Int = 0
 
-        fun newInstance(audioList: ArrayList<Audio>, audioIndex: Int, play: Boolean): PlayerFragment {
+        fun newInstance(audioList: ArrayList<Audio>, audioIndex: Int, minimized: Boolean): PlayerFragment {
             val args = Bundle()
             args.putString(ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
             args.putInt(ARG_AUDIO_INDEX, audioIndex)
-            args.putBoolean(ARG_PLAY, play)
+            args.putBoolean(ARG_MINIMIZED, minimized)
 
             val fragment = PlayerFragment()
             fragment.arguments = args
@@ -69,12 +68,12 @@ class PlayerFragment : Fragment() {
     var palette: Palette? = null
 
     private lateinit var viewModel: PlayerViewModel
-    private var listener: PlayerListener? = null
+    private var playerListener: PlayerListener? = null
 
     private val handler = Handler()
     private val runnableProgress = object: Runnable {
         override fun run() {
-            listener?.getProgress()?.let { progress ->
+            playerListener?.onGetProgress()?.let { progress ->
 //                    Log.d(TAG, "getProgress: $progress")
                 seekProgress.progress = progress
 //                    Log.d(TAG, "seekProgress: ${seekProgress.progress}")
@@ -87,60 +86,53 @@ class PlayerFragment : Fragment() {
         override fun onReceive(context: Context, intent: Intent) {
             if (intent.action != null) {
                 when {
-                    intent.action.equals(PLAY) -> {
-                        isPlaying = true
-                        playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
-                        miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
-                        handler.post(runnableProgress)
-                    }
-                    intent.action.equals(PAUSE) -> {
-                        isPlaying = false
-                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
-                        miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
-                        handler.removeCallbacksAndMessages(null)
-                    }
-                    intent.action.equals(STOP) -> {
-                        isPlaying = null
-                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
-                    }
-                    intent.action.equals(PREVIOUS) -> {
-                        audioList?.let {
-                            audioIndex = if (intent.hasExtra("index")) {
-                                intent.getIntExtra("index", 0)
-                            } else {
-                                when (audioIndex) {
-                                    0 -> it.size - 1
-                                    else -> --audioIndex
-                                }
-                            }
-                        }
-
-                        view?.let { printView(it) }
-                    }
-                    intent.action.equals(NEXT) -> {
-                        audioList?.let {
-                            audioIndex = if (intent.hasExtra("index")) {
-                                intent.getIntExtra("index", 0)
-                            } else {
-                                when (audioIndex) {
-                                    it.size - 1 -> 0
-                                    else -> ++audioIndex
-                                }
-                            }
-                        }
-
-                        view?.let { printView(it) }
-                    }
+//                    intent.action.equals(PLAY) -> {
+//                        isPlaying = true
+//                        playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+//                        miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+//                        handler.post(runnableProgress)
+//                    }
+//                    intent.action.equals(PAUSE) -> {
+//                        isPlaying = false
+//                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+//                        miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+//                        handler.removeCallbacksAndMessages(null)
+//                    }
+//                    intent.action.equals(STOP) -> {
+//                        isPlaying = null
+//                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+//                    }
+//                    intent.action.equals(PREVIOUS) -> {
+//                        audioList?.let {
+//                            audioIndex = if (intent.hasExtra("index")) {
+//                                intent.getIntExtra("index", 0)
+//                            } else {
+//                                when (audioIndex) {
+//                                    0 -> it.size - 1
+//                                    else -> --audioIndex
+//                                }
+//                            }
+//                        }
+//
+//                        view?.let { printView(it) }
+//                    }
+//                    intent.action.equals(NEXT) -> {
+//                        audioList?.let {
+//                            audioIndex = if (intent.hasExtra("index")) {
+//                                intent.getIntExtra("index", 0)
+//                            } else {
+//                                when (audioIndex) {
+//                                    it.size - 1 -> 0
+//                                    else -> ++audioIndex
+//                                }
+//                            }
+//                        }
+//
+//                        view?.let { printView(it) }
+//                    }
                 }
             }
         }
-    }
-
-    interface PlayerListener {
-        fun setServiceBoundState(serviceBoundState: Boolean)
-        fun getServiceBoundState(): Boolean
-        fun bindService(service: Intent, flags: Int)
-        fun getProgress(): Int?
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -149,10 +141,19 @@ class PlayerFragment : Fragment() {
         viewModel =
             ViewModelProvider(this).get(PlayerViewModel::class.java)
 
-        arguments?.getString(ARG_AUDIO_LIST)?.let {
-            audioList = StorageUtil.audioListFromString(it)
+        arguments?.apply {
+            getString(ARG_AUDIO_LIST)?.let {
+                audioList = StorageUtil.audioListFromString(it)
+            }
+
+            if (containsKey(ARG_AUDIO_INDEX))
+                audioIndex = getInt(ARG_AUDIO_INDEX)
+
+            if (containsKey(ARG_MINIMIZED))
+                isMinimized = getBoolean(ARG_MINIMIZED)
         }
-        arguments?.getInt(ARG_AUDIO_INDEX)?.let { audioIndex = it }
+
+
 
 //        if (context != null) {
 //            audioList = StorageUtil(requireContext()).loadAudio()
@@ -160,13 +161,13 @@ class PlayerFragment : Fragment() {
 //        }
 
 
-        val play = arguments?.getBoolean(ARG_PLAY)
 
-        if (play == true) {
-            onPlayOrPause()
-        } else {
-            isMinimized = true
-        }
+
+//        if (play == true) {
+//            onPlayOrPause()
+//        } else {
+//            isMinimized = true
+//        }
     }
 
     override fun onResume() {
@@ -283,7 +284,7 @@ class PlayerFragment : Fragment() {
             }
 
             audioList?.let {
-                val adapter = PlayListRecyclerViewAdapter(it)
+                val adapter = PlayListRecyclerViewAdapter(it, playerListener)
                 val recycler = player_recycler_view as RecyclerView
                 recycler.setHasFixedSize(true)
                 recycler.layoutManager = LinearLayoutManager(context)
@@ -297,8 +298,13 @@ class PlayerFragment : Fragment() {
     }
 
     override fun onAttach(context: Context) {
-        if (context is PlayerListener) listener = context
         super.onAttach(context)
+
+        if (context is PlayerListener) {
+            playerListener = context
+        } else {
+            throw RuntimeException("$context must implement PlayerListener")
+        }
     }
 
     private fun startBroadcast() {
@@ -310,64 +316,82 @@ class PlayerFragment : Fragment() {
         context?.registerReceiver(updaterPlayButton, filter)
     }
 
-    private fun playAudio(audioIndex: Int) {
-        context?.let { context ->
-            if (listener?.getServiceBoundState() != true) {
-                // Store Serializable audioList to SharedPreferences
-                val storage = StorageUtil(context)
-                storage.storeAudio(audioList)
-                storage.storeAudioIndex(audioIndex)
+//    private fun playAudio(audioIndex: Int) {
+//        context?.let { context ->
+//            if (listener?.getServiceBoundState() != true) {
+//                // Store Serializable audioList to SharedPreferences
+//                val storage = StorageUtil(context)
+//                storage.storeAudio(audioList)
+//                storage.storeAudioIndex(audioIndex)
+//
+//                val playerIntent = Intent(context, MediaPlayerService::class.java)
+//                context.startService(playerIntent)
+//                listener?.bindService(playerIntent, Context.BIND_AUTO_CREATE)
+//            } else {
+//                Toast.makeText(context, "Player Activity", Toast.LENGTH_SHORT).show()
+//                // Store the new audioIndex to SharedPreferences
+//                val storage = StorageUtil(context)
+//                storage.storeAudioIndex(audioIndex)
+//
+//                // Service is active
+//                // Send media with BroadcastReceiver
+//                val broadcastIntent = Intent(MediaPlayerService.PLAY_NEW_AUDIO)
+//                context.sendBroadcast(broadcastIntent)
+//            }
+//        }
+//    }
 
-                val playerIntent = Intent(context, MediaPlayerService::class.java)
-                context.startService(playerIntent)
-                listener?.bindService(playerIntent, Context.BIND_AUTO_CREATE)
-            } else {
-                Toast.makeText(context, "Player Activity", Toast.LENGTH_SHORT).show()
-                // Store the new audioIndex to SharedPreferences
-                val storage = StorageUtil(context)
-                storage.storeAudioIndex(audioIndex)
+    private fun play() {
+        playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+        miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
+    }
 
-                // Service is active
-                // Send media with BroadcastReceiver
-                val broadcastIntent = Intent(MediaPlayerService.PLAY_NEW_AUDIO)
-                context.sendBroadcast(broadcastIntent)
-            }
-        }
+    private fun pause() {
+        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
+        miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
     }
 
     private fun onPlayOrPause() {
-        isPlaying = when(isPlaying) {
-            true -> {
-                launchIntentToPlayer(MediaPlayerService.ACTION_PAUSE)
-                false
-            }
-            false -> {
-                launchIntentToPlayer(MediaPlayerService.ACTION_PLAY)
-                true
-            }
-            else -> {
-                playAudio(audioIndex)
-                true
-            }
+//        isPlaying = when(isPlaying) {
+//            true -> {
+//                launchIntentToPlayer(MediaPlayerService.ACTION_PAUSE)
+//                false
+//            }
+//            false -> {
+//                launchIntentToPlayer(MediaPlayerService.ACTION_PLAY)
+//                true
+//            }
+//            else -> {
+//                playAudio(audioIndex)
+//                true
+//            }
+//        }
+        isPlaying = playerListener?.onPlayOrPause()
+        when (isPlaying) {
+            true -> play()
+            false -> pause()
         }
     }
 
     private fun onSkipToPrevious() {
-        if (isPlaying != null) {
-            launchIntentToPlayer(MediaPlayerService.ACTION_PREVIOUS)
-        }
+//        if (isPlaying != null) {
+//            launchIntentToPlayer(MediaPlayerService.ACTION_PREVIOUS)
+//        }
+        playerListener?.onSkipToPrevious()
     }
 
     private fun onSkipToNext() {
-        if (isPlaying != null) {
-            launchIntentToPlayer(MediaPlayerService.ACTION_NEXT)
-        }
+//        if (isPlaying != null) {
+//            launchIntentToPlayer(MediaPlayerService.ACTION_NEXT)
+//        }
+        playerListener?.onSkipToNext()
     }
 
     private fun onSeekTo(progress: Int) {
-        if (isPlaying != null) {
-            launchIntentToPlayer(MediaPlayerService.ACTION_SEEK, progress, progress)
-        }
+//        if (isPlaying != null) {
+//            launchIntentToPlayer(MediaPlayerService.ACTION_SEEK, progress, progress)
+//        }
+        playerListener?.onSeekTo(progress)
     }
 
     private fun launchIntentToPlayer(action: String, requestCode: Int = -1, progress: Int? = null) {

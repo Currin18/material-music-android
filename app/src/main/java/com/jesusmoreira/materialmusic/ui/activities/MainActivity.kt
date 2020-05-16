@@ -1,5 +1,6 @@
 package com.jesusmoreira.materialmusic.ui.activities
 
+import android.app.Activity
 import android.content.*
 import android.content.pm.PackageManager
 import android.database.Cursor
@@ -26,6 +27,7 @@ import com.jesusmoreira.materialmusic.ui.fragments.albums.AlbumListener
 import com.jesusmoreira.materialmusic.ui.fragments.artists.ArtistListener
 import com.jesusmoreira.materialmusic.ui.fragments.songs.TabSongsFragment
 import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerFragment
+import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerListener
 import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
 import com.jesusmoreira.materialmusic.utils.GeneralUtil
 import com.jesusmoreira.materialmusic.utils.PlaybackUtil
@@ -33,13 +35,15 @@ import com.jesusmoreira.materialmusic.utils.ServiceUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.activity_player.*
 
-class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.PlayerListener,  SongListener, AlbumListener, ArtistListener {
+class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  SongListener, AlbumListener, ArtistListener {
 
     companion object {
         const val SERVICE_STATE: String = "ServiceState"
 
-        private const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
-        private const val ARG_INDEX: String = "ARG_INDEX"
+        const val AUDIO_LIST_REQUEST: Int = 1002
+
+        const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
+        const val ARG_INDEX: String = "ARG_INDEX"
 
         fun newIntent(context: Context, audioList: ArrayList<Audio>, index: Int) =
             Intent(context, MainActivity::class.java).apply {
@@ -49,7 +53,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.Play
     }
 
     private var serviceBound = false
-//    private var audioList : ArrayList<Audio>? = arrayListOf()
+    private var audioList: ArrayList<Audio> = arrayListOf()
+    private var audioIndex: Int = 0
 
     private var player: MediaPlayerService? = null
     private var serviceConnection : ServiceConnection? = null
@@ -104,14 +109,13 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.Play
             ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
         }
 
-        intent?.extras?.apply {
-            val audioList: ArrayList<Audio> = StorageUtil.audioListFromString(getString(ARG_AUDIO_LIST))
-            val index: Int = getInt(ARG_INDEX)
-
-            if (!audioList.isNullOrEmpty()) {
-//                startPlayer(audioList, index)
-            }
-        }
+//        intent?.extras?.apply {
+//            audioList = StorageUtil.audioListFromString(getString(ARG_AUDIO_LIST))
+//            audioIndex = getInt(ARG_INDEX)
+//        }
+//        if (!audioList.isNullOrEmpty()) {
+//            startPlayer(audioList, audioIndex)
+//        }
 
         volumeControlStream = AudioManager.STREAM_MUSIC
 
@@ -119,12 +123,13 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.Play
     }
 
     override fun onDestroy() {
-        super.onDestroy()
 
         token?.let {
             ServiceUtil.unbindFromService(it)
             token = null
         }
+
+        super.onDestroy()
 
         if (serviceBound) {
             serviceConnection?.let { unbindService(it) }
@@ -163,6 +168,21 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.Play
         }
     }
 
+    override fun onActivityResult(requestCode: Int, resultCode: Int, data: Intent?) {
+        super.onActivityResult(requestCode, resultCode, data)
+            when (requestCode) {
+                AUDIO_LIST_REQUEST -> {
+                    data?.extras?.apply {
+                        audioList = StorageUtil.audioListFromString(getString(ARG_AUDIO_LIST))
+                        audioIndex = getInt(ARG_INDEX)
+                    }
+                    if (!audioList.isNullOrEmpty()) {
+                        startPlayer(audioList, audioIndex)
+                    }
+                }
+            }
+    }
+
     override fun onBackPressed() {
         val playerFragments = supportFragmentManager.fragments.filterIsInstance<PlayerFragment>()
         if (playerFragments.isNotEmpty()) {
@@ -178,26 +198,74 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.Play
         }
     }
 
-    override fun setServiceBoundState(serviceBoundState: Boolean) {
-        serviceBound = serviceBoundState
-    }
+//    override fun setServiceBoundState(serviceBoundState: Boolean) {
+//        serviceBound = serviceBoundState
+//    }
+//
+//    override fun getServiceBoundState(): Boolean {
+//        return serviceBound
+//    }
+//
+//    override fun bindService(service: Intent, flags: Int) {
+//        serviceConnection?.let {
+//            bindService(service, it, flags)
+//        }
+//    }
 
-    override fun getServiceBoundState(): Boolean {
-        return serviceBound
-    }
-
-    override fun bindService(service: Intent, flags: Int) {
-        serviceConnection?.let {
-            bindService(service, it, flags)
+    override fun onPlayOrPause(): Boolean {
+        with(PlaybackUtil) {
+            return if (isPlaying()) {
+                pause()
+                false
+            } else {
+                play()
+                true
+            }
         }
     }
 
-    override fun getProgress(): Int? {
-        return player?.getProgress()
+    override fun onSkipToPrevious() {
+        audioIndex = when {
+            audioIndex - 1 < 0 -> audioList.size - 1
+            else -> audioIndex - 1
+        }
+        startPlayer(audioList, audioIndex)
+    }
+
+    override fun onSkipToNext() {
+        audioIndex = when {
+            audioIndex + 1 >= audioList.size -> 0
+            else -> audioIndex + 1
+        }
+        startPlayer(audioList, audioIndex)
+    }
+
+    override fun onSeekTo(position: Int) {
+        PlaybackUtil.seek(position.toLong())
+    }
+
+    override fun onGetProgress(): Int? {
+//        return player?.getProgress()
+        return PlaybackUtil.getPosition().toInt()
     }
 
     override fun onSongClicked(audioList: ArrayList<Audio>, position: Int) {
-//        startPlayer(audioList, position)
+        this.audioList = audioList
+        this.audioIndex = position
+        startPlayer(audioList, position)
+    }
+
+    override fun onAlbumClicked(album: Album) {
+//        val playerIntent = Intent(applicationContext, MediaPlayerService::class.java)
+//        stopService(playerIntent)
+        startActivityForResult(AlbumDetailActivity.newIntent(applicationContext, album), AUDIO_LIST_REQUEST)
+    }
+
+    override fun onArtistClicked(artist: Artist) {
+        startActivityForResult(ArtistDetailActivity.newIntent(applicationContext, artist), AUDIO_LIST_REQUEST)
+    }
+
+    private fun startPlayer(audioList: ArrayList<Audio>, position: Int) {
         with(PlaybackUtil) {
             if (isPlaying()) {
                 stop()
@@ -207,22 +275,8 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerFragment.Play
             play()
         }
 
-
-    }
-
-    override fun onAlbumClicked(album: Album) {
-//        val playerIntent = Intent(applicationContext, MediaPlayerService::class.java)
-//        stopService(playerIntent)
-        startActivity(AlbumDetailActivity.newIntent(applicationContext, album))
-    }
-
-    override fun onArtistClicked(artist: Artist) {
-
-    }
-
-    private fun startPlayer(audioList: ArrayList<Audio>, position: Int) {
         supportFragmentManager.beginTransaction()
-            .replace(R.id.player, PlayerFragment.newInstance(audioList, position, true))
+            .replace(R.id.player, PlayerFragment.newInstance(audioList, position, false))
             .commitNow()
     }
 

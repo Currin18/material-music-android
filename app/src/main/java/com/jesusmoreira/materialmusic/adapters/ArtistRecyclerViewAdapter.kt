@@ -10,6 +10,7 @@ import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Artist
 import com.jesusmoreira.materialmusic.ui.fragments.artists.ArtistListener
+import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import kotlinx.android.synthetic.main.item_list_artist.view.*
 
 class ArtistRecyclerViewAdapter(
@@ -49,6 +50,17 @@ class ArtistRecyclerViewAdapter(
                 else -> "songs"
             }
             holder.artistData.text = artistData
+
+            val albums = this.getAlbumes(context)
+            if (albums.isNotEmpty()) {
+                val bitmap = albums[0].getAlbumArtBitmap(context, 100, 100)
+                if (bitmap != null) {
+                    holder.image.setImageBitmap(bitmap)
+                } else {
+                    val defaultBitmap = GraphicUtil.getBitmapFromVectorDrawable(context, R.drawable.ic_album_black_24dp)
+                    holder.image.setImageBitmap(defaultBitmap)
+                }
+            }
 
             with(holder.view) {
                 tag = position

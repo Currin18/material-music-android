@@ -7,8 +7,12 @@ import android.os.Bundle
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Album
 import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.ui.activities.MainActivity.Companion.ARG_AUDIO_LIST
+import com.jesusmoreira.materialmusic.ui.activities.MainActivity.Companion.ARG_INDEX
+import com.jesusmoreira.materialmusic.ui.activities.MainActivity.Companion.AUDIO_LIST_REQUEST
 import com.jesusmoreira.materialmusic.ui.fragments.albums.AlbumDetailFragment
 import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
+import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.album_detail_activity.*
 
 class AlbumDetailActivity : AppCompatActivity(), SongListener {
@@ -44,8 +48,16 @@ class AlbumDetailActivity : AppCompatActivity(), SongListener {
     }
 
     override fun onSongClicked(audioList: ArrayList<Audio>, position: Int) {
-        startActivity(MainActivity.newIntent(applicationContext, audioList, position).apply {
-            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
-        })
+        val intent = Intent().apply {
+            putExtra(ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
+            putExtra(ARG_INDEX, position)
+        }
+
+        setResult(AUDIO_LIST_REQUEST, intent)
+        finish()
+
+//        startActivity(MainActivity.newIntent(applicationContext, audioList, position).apply {
+//            addFlags(Intent.FLAG_ACTIVITY_CLEAR_TOP)
+//        })
     }
 }

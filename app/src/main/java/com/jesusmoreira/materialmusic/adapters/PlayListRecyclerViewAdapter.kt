@@ -7,17 +7,22 @@ import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerListener
 import kotlinx.android.synthetic.main.item_list.view.*
 
-class PlayListRecyclerViewAdapter(private var playList: ArrayList<Audio>): RecyclerView.Adapter<PlayListRecyclerViewAdapter.ViewHolder>() {
+class PlayListRecyclerViewAdapter(
+    private var playList: ArrayList<Audio>,
+    private val listener: PlayerListener?
+): RecyclerView.Adapter<PlayListRecyclerViewAdapter.ViewHolder>() {
 
-    inner class ViewHolder(view: View) : RecyclerView.ViewHolder(view) {
-        var title: TextView? = null
-        var text: TextView? = null
+    private val onClickListener: View.OnClickListener
 
-        init {
-            title = view.title
-            text = view.text
+    init {
+        onClickListener = View.OnClickListener { v ->
+            val position = v.tag as Int
+            // Notify the active callbacks interface (the activity, if the fragment is attached to
+            // one) that an item has been selected.
+            listener?.onSongClicked(playList, position)
         }
     }
 
@@ -27,15 +32,22 @@ class PlayListRecyclerViewAdapter(private var playList: ArrayList<Audio>): Recyc
         return ViewHolder(view)
     }
 
-    override fun getItemCount(): Int {
-        return playList.size
-    }
+    override fun getItemCount(): Int = playList.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
         val item = playList[position]
 
         holder.title?.text = item.title
-        val extraData = "${item.album ?: "unknown"} · ${item.artist ?: "unknown"}"
-        holder.text?.text = extraData
+        "${item.album ?: "unknown"} · ${item.artist ?: "unknown"}".let { holder.text?.text = it }
+
+        with(holder.view) {
+            tag = position
+            setOnClickListener(onClickListener)
+        }
+    }
+
+    inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
+        var title: TextView? = view.title
+        var text: TextView? = view.text
     }
 }

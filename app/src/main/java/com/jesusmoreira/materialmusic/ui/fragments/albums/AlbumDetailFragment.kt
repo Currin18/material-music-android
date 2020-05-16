@@ -17,11 +17,9 @@ import com.jesusmoreira.materialmusic.adapters.SongRecyclerViewAdapter
 import com.jesusmoreira.materialmusic.controllers.MediaController
 import com.jesusmoreira.materialmusic.models.Album
 import com.jesusmoreira.materialmusic.ui.activities.AlbumDetailActivity
-import com.jesusmoreira.materialmusic.ui.activities.MainActivity
 import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
 import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import kotlinx.android.synthetic.main.album_detail_fragment.view.*
-import org.jetbrains.anko.backgroundColor
 
 class AlbumDetailFragment : Fragment() {
 
@@ -55,7 +53,12 @@ class AlbumDetailFragment : Fragment() {
     ): View {
         val view = inflater.inflate(R.layout.album_detail_fragment, container, false)
 
+        val actionBar = (activity as? AlbumDetailActivity)
+            ?.supportActionBar
+
         viewModel.album?.apply {
+            actionBar?.title = album
+
             val bitmap = context?.let { getAlbumArtBitmap(it, 500, 500) }
             if (bitmap != null) {
                 view.albumArt.setImageBitmap(bitmap)
@@ -66,11 +69,9 @@ class AlbumDetailFragment : Fragment() {
                         GraphicUtil.getColorFromPalette(
                             GraphicUtil.getPaletteFromBitmap(mutableCopy)
                         )?.let {
-                            view.detailLayout.backgroundColor = it
-                            val actionBar = (activity as? AlbumDetailActivity)
-                                ?.supportActionBar
+                            view.detailLayout.setBackgroundColor(it)
+
                             actionBar?.setBackgroundDrawable(ColorDrawable(it))
-                            actionBar?.title = album
 //                            actionBar?.elevation = 0f
 //                            activity?.actionBar?.setBackgroundDrawable(ColorDrawable(it))
                         }

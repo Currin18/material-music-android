@@ -17,6 +17,7 @@
             android:roundIcon="@mipmap/ic_launcher_headset_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme.NoActionBar">
+        <activity android:name=".ui.activities.ArtistDetailActivity"></activity>
         <activity android:name=".ui.activities.AlbumDetailActivity" />
 
         <service android:name=".services.MediaPlayerService" />

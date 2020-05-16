@@ -3,7 +3,6 @@ package com.jesusmoreira.materialmusic.services
 import android.app.Service
 import android.content.Context
 import android.content.Intent
-import android.content.res.AssetFileDescriptor
 import android.media.AudioAttributes
 import android.media.AudioFocusRequest
 import android.media.AudioManager
@@ -54,8 +53,8 @@ class PlaybackService: Service() {
         // separate thread because the service normally runs in the process's
         // main thread, which we don't want to block. We also make it
         // background priority so CPU-intensive work will not disrupt the UI.
-        val thread: HandlerThread = HandlerThread("MediaPlaybackHandler",
-                android.os.Process.THREAD_PRIORITY_BACKGROUND)
+        val thread = HandlerThread("MediaPlaybackHandler",
+                Process.THREAD_PRIORITY_BACKGROUND)
         thread.start()
 
         // Initialize the handlers
@@ -82,7 +81,7 @@ class PlaybackService: Service() {
 
         synchronized(this) {
             mediaPlayback?.let {
-                if (it.isPlayerInitialised) it.stop()
+                if (it.isPlayerInitialized) it.stop()
             }
         }
     }
@@ -102,7 +101,18 @@ class PlaybackService: Service() {
                         .build()
                 )
             } else {
+                @Suppress("DEPRECATION")
                 audioManager?.requestAudioFocus(audioFocusListener, AudioManager.STREAM_MUSIC, AudioManager.AUDIOFOCUS_GAIN)
+            }
+
+            mediaPlayback?.apply {
+                if (isPlayerInitialized) {
+                    this.start()
+
+                    mediaPlayerHandler?.removeMessages(FADE_DOWN)
+                    mediaPlayerHandler?.sendEmptyMessage(FADE_UP)
+                    isSupposedToBePlaying = true
+                }
             }
         }
     }
@@ -126,7 +136,7 @@ class PlaybackService: Service() {
 
             mediaPlayback?.let {
                 it.setDataSource(path)
-                if (it.isPlayerInitialised)
+                if (it.isPlayerInitialized)
                     return true
             }
             stop()
@@ -137,7 +147,7 @@ class PlaybackService: Service() {
     fun getDuration(): Long {
         synchronized(this) {
             mediaPlayback?.let {
-                if (it.isPlayerInitialised) return it.getDuration()
+                if (it.isPlayerInitialized) return it.getDuration()
             }
         }
         return -1
@@ -146,7 +156,7 @@ class PlaybackService: Service() {
     fun getPosition(): Long {
         synchronized(this) {
             mediaPlayback?.let {
-                if (it.isPlayerInitialised) return it.getPosition()
+                if (it.isPlayerInitialized) return it.getPosition()
             }
         }
         return 0
@@ -155,7 +165,7 @@ class PlaybackService: Service() {
     fun seek(position: Long) {
         synchronized(this) {
             mediaPlayback?.let {
-                if (it.isPlayerInitialised) {
+                if (it.isPlayerInitialized) {
                     it.seek(when {
                         position < 0 -> 0
                         position > it.getDuration() -> it.getDuration()
@@ -173,7 +183,7 @@ class PlaybackService: Service() {
 
         private var player: MediaPlayer? = MediaPlayer()
         var handler: Handler? = null
-        var isPlayerInitialised = false
+        var isPlayerInitialized = false
 
         var volume: Float = 0f
             set(volume) {
@@ -183,11 +193,13 @@ class PlaybackService: Service() {
 
         fun start() {
             player?.start()
+            Log.i(TAG, "State: STARTED")
         }
 
         fun stop() {
             player?.reset()
-            isPlayerInitialised = false
+            isPlayerInitialized = false
+            Log.i(TAG, "State: STOPPED")
         }
 
         /**
@@ -196,19 +208,21 @@ class PlaybackService: Service() {
         fun release() {
             stop()
             player?.release()
+            Log.i(TAG, "State: END")
         }
 
         fun pause() {
             player?.pause()
+            Log.i(TAG, "State: PAUSED")
         }
 
         fun getDuration(): Long = when {
-            player != null && isPlayerInitialised -> player!!.duration.toLong()
+            player != null && isPlayerInitialized -> player!!.duration.toLong()
             else -> -1
         }
 
         fun getPosition(): Long = when {
-            player != null && isPlayerInitialised -> player!!.currentPosition.toLong()
+            player != null && isPlayerInitialized -> player!!.currentPosition.toLong()
             else -> 0
         }
 
@@ -216,7 +230,8 @@ class PlaybackService: Service() {
 
         fun setDataSource(path: String) {
             player?.let {
-                isPlayerInitialised = setDataSource(it, path)
+                isPlayerInitialized = setDataSource(it, path)
+                Log.i(TAG, "State: INITIALIZED")
             }
         }
 
@@ -224,10 +239,16 @@ class PlaybackService: Service() {
             try {
 //                val afd: AssetFileDescriptor = assets.openFd(path)
                 mediaPlayer.reset()
+
                 // TODO: implement OnPreparedListener
-                mediaPlayer.setOnPreparedListener(MediaPlayer.OnPreparedListener {
-                    start()
-                })
+//                mediaPlayer.setOnPreparedListener {
+//                    Log.i(TAG, "State: PREPARED")
+//                    start()
+//                }
+                mediaPlayer.setOnPreparedListener(null)
+                mediaPlayer.setOnCompletionListener(this)
+                mediaPlayer.setOnErrorListener(this)
+
 //                mediaPlayer.setAudioStreamType(AudioManager.STREAM_MUSIC)
                 mediaPlayer.setAudioAttributes(
                     AudioAttributes.Builder()
@@ -236,11 +257,8 @@ class PlaybackService: Service() {
 //                mediaPlayer.setDataSource(afd.fileDescriptor, afd.startOffset, afd.length)
 //                afd.close()
                 mediaPlayer.setDataSource(applicationContext, Uri.parse(path))
-//                mediaPlayer.prepare()
-                mediaPlayer.prepareAsync()
-
-                mediaPlayer.setOnCompletionListener(this)
-                mediaPlayer.setOnErrorListener(this)
+                mediaPlayer.prepare()
+//                mediaPlayer.prepareAsync()
 
             } catch (e: IOException) {
                 e.printStackTrace()
@@ -265,7 +283,7 @@ class PlaybackService: Service() {
 
             when(what) {
                 MediaPlayer.MEDIA_ERROR_SERVER_DIED -> {
-                    isPlayerInitialised = false
+                    isPlayerInitialized = false
                     player?.release()
                     player = MediaPlayer()
 
@@ -362,14 +380,17 @@ class PlaybackService: Service() {
             _service = WeakReference(service)
         }
 
+        @Throws(RemoteException::class)
         override fun stop() {
             _service?.get()?.stop()
         }
 
+        @Throws(RemoteException::class)
         override fun play() {
             _service?.get()?.play()
         }
 
+        @Throws(RemoteException::class)
         override fun pause() {
             _service?.get()?.pause()
         }
@@ -379,14 +400,17 @@ class PlaybackService: Service() {
             return _service?.get()?.openFile(path) ?: false
         }
 
+        @Throws(RemoteException::class)
         override fun getDuration(): Long {
             return _service?.get()?.getDuration() ?: 0L
         }
 
+        @Throws(RemoteException::class)
         override fun getPosition(): Long {
             return _service?.get()?.getPosition() ?: 0L
         }
 
+        @Throws(RemoteException::class)
         override fun seek(position: Long) {
             _service?.get()?.seek(position)
         }

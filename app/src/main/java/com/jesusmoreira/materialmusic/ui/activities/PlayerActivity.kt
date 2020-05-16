@@ -20,7 +20,7 @@ import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.activity_player.*
 
 
-class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
+class PlayerActivity : AppCompatActivity()/*, PlayerListener*/ {
 
     companion object {
         const val SERVICE_STATE: String = "ServiceState"
@@ -95,21 +95,21 @@ class PlayerActivity : AppCompatActivity(), PlayerFragment.PlayerListener {
         }
     }
 
-    override fun setServiceBoundState(serviceBoundState: Boolean) {
-        serviceBound = serviceBoundState
-    }
-
-    override fun getServiceBoundState(): Boolean {
-        return serviceBound
-    }
-
-    override fun bindService(service: Intent, flags: Int) {
-        serviceConnection?.let {
-            bindService(service, it, flags)
-        }
-    }
-
-    override fun getProgress(): Int? {
-        return player?.getProgress()
-    }
+//    override fun setServiceBoundState(serviceBoundState: Boolean) {
+//        serviceBound = serviceBoundState
+//    }
+//
+//    override fun getServiceBoundState(): Boolean {
+//        return serviceBound
+//    }
+//
+//    override fun bindService(service: Intent, flags: Int) {
+//        serviceConnection?.let {
+//            bindService(service, it, flags)
+//        }
+//    }
+//
+//    override fun getProgress(): Int? {
+//        return player?.getProgress()
+//    }
 }
