@@ -1,7 +1,6 @@
 package com.jesusmoreira.materialmusic.ui.fragments.player
 
-import android.app.PendingIntent
-import android.content.*
+import android.content.Context
 import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
@@ -18,15 +17,13 @@ import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.PlayListRecyclerViewAdapter
-import com.jesusmoreira.materialmusic.services.MediaPlayerService
 import com.jesusmoreira.materialmusic.models.Audio
-import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
+import com.jesusmoreira.materialmusic.models.ShuffleStatus
 import com.jesusmoreira.materialmusic.utils.GraphicUtil
 import com.jesusmoreira.materialmusic.utils.StorageUtil
 import kotlinx.android.synthetic.main.fragment_player.*
 import kotlinx.android.synthetic.main.fragment_player.view.*
 import kotlinx.android.synthetic.main.item_list.view.*
-import org.jetbrains.anko.backgroundColor
 
 /**
  * A placeholder fragment containing a simple view.
@@ -39,21 +36,25 @@ class PlayerFragment : Fragment() {
         private const val ARG_AUDIO_LIST: String = "ARG_AUDIO_LIST"
         private const val ARG_AUDIO_INDEX: String = "ARG_AUDIO_INDEX"
         private const val ARG_MINIMIZED: String = "ARG_MINIMIZED"
-
-        const val PLAY: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PLAY"
-        const val PAUSE: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PAUSE"
-        const val STOP: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.STOP"
-        const val PREVIOUS: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.PREVIOUS"
-        const val NEXT: String = "com.jesusmoreira.materialmusic.ui.activities.PlayerActivity.NEXT"
+        private const val ARG_SHUFFLE: String = "ARG_SHUFFLE"
+        private const val ARG_REPEAT: String = "ARG_REPEAT"
 
         private var audioList: ArrayList<Audio>? = null
         private var audioIndex: Int = 0
 
-        fun newInstance(audioList: ArrayList<Audio>, audioIndex: Int, minimized: Boolean): PlayerFragment {
+        fun newInstance(
+            audioList: ArrayList<Audio>,
+            audioIndex: Int,
+            minimized: Boolean = false,
+            shuffle: Int = 0,
+            repeat: Int = 0
+        ): PlayerFragment {
             val args = Bundle()
             args.putString(ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
             args.putInt(ARG_AUDIO_INDEX, audioIndex)
             args.putBoolean(ARG_MINIMIZED, minimized)
+            args.putInt(ARG_SHUFFLE, shuffle)
+            args.putInt(ARG_REPEAT, repeat)
 
             val fragment = PlayerFragment()
             fragment.arguments = args
@@ -64,8 +65,9 @@ class PlayerFragment : Fragment() {
 
     private var isPlaying: Boolean? = null
     var isMinimized: Boolean = false
+    var shuffleStatus: ShuffleStatus = ShuffleStatus.NO_SHUFFLE
 
-    var palette: Palette? = null
+    private var palette: Palette? = null
 
     private lateinit var viewModel: PlayerViewModel
     private var playerListener: PlayerListener? = null
@@ -74,64 +76,9 @@ class PlayerFragment : Fragment() {
     private val runnableProgress = object: Runnable {
         override fun run() {
             playerListener?.onGetProgress()?.let { progress ->
-//                    Log.d(TAG, "getProgress: $progress")
                 seekProgress.progress = progress
-//                    Log.d(TAG, "seekProgress: ${seekProgress.progress}")
             }
             handler.postDelayed(this, 1000)
-        }
-    }
-
-    private val updaterPlayButton: BroadcastReceiver = object : BroadcastReceiver() {
-        override fun onReceive(context: Context, intent: Intent) {
-            if (intent.action != null) {
-                when {
-//                    intent.action.equals(PLAY) -> {
-//                        isPlaying = true
-//                        playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
-//                        miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
-//                        handler.post(runnableProgress)
-//                    }
-//                    intent.action.equals(PAUSE) -> {
-//                        isPlaying = false
-//                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
-//                        miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
-//                        handler.removeCallbacksAndMessages(null)
-//                    }
-//                    intent.action.equals(STOP) -> {
-//                        isPlaying = null
-//                        playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
-//                    }
-//                    intent.action.equals(PREVIOUS) -> {
-//                        audioList?.let {
-//                            audioIndex = if (intent.hasExtra("index")) {
-//                                intent.getIntExtra("index", 0)
-//                            } else {
-//                                when (audioIndex) {
-//                                    0 -> it.size - 1
-//                                    else -> --audioIndex
-//                                }
-//                            }
-//                        }
-//
-//                        view?.let { printView(it) }
-//                    }
-//                    intent.action.equals(NEXT) -> {
-//                        audioList?.let {
-//                            audioIndex = if (intent.hasExtra("index")) {
-//                                intent.getIntExtra("index", 0)
-//                            } else {
-//                                when (audioIndex) {
-//                                    it.size - 1 -> 0
-//                                    else -> ++audioIndex
-//                                }
-//                            }
-//                        }
-//
-//                        view?.let { printView(it) }
-//                    }
-                }
-            }
         }
     }
 
@@ -151,33 +98,17 @@ class PlayerFragment : Fragment() {
 
             if (containsKey(ARG_MINIMIZED))
                 isMinimized = getBoolean(ARG_MINIMIZED)
+
+            if (containsKey(ARG_SHUFFLE))
+                shuffleStatus = when (getInt(ARG_SHUFFLE)) {
+                    1 -> ShuffleStatus.SHUFFLE
+                    else -> ShuffleStatus.NO_SHUFFLE
+                }
         }
-
-
-
-//        if (context != null) {
-//            audioList = StorageUtil(requireContext()).loadAudio()
-//            audioIndex = StorageUtil(requireContext()).loadAudioIndex()
-//        }
-
-
-
-
-//        if (play == true) {
-//            onPlayOrPause()
-//        } else {
-//            isMinimized = true
-//        }
-    }
-
-    override fun onResume() {
-        super.onResume()
-        startBroadcast()
     }
 
     override fun onDestroy() {
         super.onDestroy()
-        context?.unregisterReceiver(updaterPlayButton)
         handler.removeCallbacksAndMessages(null)
     }
 
@@ -223,6 +154,12 @@ class PlayerFragment : Fragment() {
         view.skipToNext.setOnClickListener {
             onSkipToNext()
         }
+        view.shuffle.setOnClickListener {
+            playerListener?.onChangeShuffle(when(shuffleStatus) {
+                ShuffleStatus.NO_SHUFFLE -> ShuffleStatus.SHUFFLE
+                ShuffleStatus.SHUFFLE -> ShuffleStatus.NO_SHUFFLE
+            })
+        }
 
         view.smallPlayer.setOnClickListener {
             maximize()
@@ -237,6 +174,11 @@ class PlayerFragment : Fragment() {
         with(view) {
             bigPlayer.visibility = View.GONE
             smallPlayer.visibility = View.GONE
+
+            shuffle.setImageResource(when (shuffleStatus) {
+                ShuffleStatus.NO_SHUFFLE -> R.drawable.ic_shuffle_disabled_white_24dp
+                ShuffleStatus.SHUFFLE -> R.drawable.ic_shuffle_white_24dp
+            })
 
             audioList?.get(audioIndex)?.let { audio ->
                 if (isMinimized) {
@@ -258,8 +200,8 @@ class PlayerFragment : Fragment() {
                                 val backgroundColor = GraphicUtil.getColorFromPalette(palette)
                                 if (backgroundColor != null) {
                                     Log.d(TAG, "BackgroundColor: ${GraphicUtil.intToRGB(backgroundColor)}")
-                                    smallPlayerBg.backgroundColor = backgroundColor
-                                    bigPlayerBg.backgroundColor = backgroundColor
+                                    smallPlayerBg.setBackgroundColor(backgroundColor)
+                                    bigPlayerBg.setBackgroundColor(backgroundColor)
                                 }
 
 //                                val tintColor = palette.lightMutedSwatch?.rgb
@@ -307,65 +249,17 @@ class PlayerFragment : Fragment() {
         }
     }
 
-    private fun startBroadcast() {
-        val filter = IntentFilter()
-        filter.addAction(PLAY)
-        filter.addAction(PAUSE)
-        filter.addAction(PREVIOUS)
-        filter.addAction(NEXT)
-        context?.registerReceiver(updaterPlayButton, filter)
-    }
-
-//    private fun playAudio(audioIndex: Int) {
-//        context?.let { context ->
-//            if (listener?.getServiceBoundState() != true) {
-//                // Store Serializable audioList to SharedPreferences
-//                val storage = StorageUtil(context)
-//                storage.storeAudio(audioList)
-//                storage.storeAudioIndex(audioIndex)
-//
-//                val playerIntent = Intent(context, MediaPlayerService::class.java)
-//                context.startService(playerIntent)
-//                listener?.bindService(playerIntent, Context.BIND_AUTO_CREATE)
-//            } else {
-//                Toast.makeText(context, "Player Activity", Toast.LENGTH_SHORT).show()
-//                // Store the new audioIndex to SharedPreferences
-//                val storage = StorageUtil(context)
-//                storage.storeAudioIndex(audioIndex)
-//
-//                // Service is active
-//                // Send media with BroadcastReceiver
-//                val broadcastIntent = Intent(MediaPlayerService.PLAY_NEW_AUDIO)
-//                context.sendBroadcast(broadcastIntent)
-//            }
-//        }
-//    }
-
-    private fun play() {
+    fun play() {
         playOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
         miniPlayOrPause.setImageResource(R.drawable.ic_pause_white_24dp)
     }
 
-    private fun pause() {
+    fun pause() {
         playOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
         miniPlayOrPause.setImageResource(R.drawable.ic_play_arrow_white_24dp)
     }
 
     private fun onPlayOrPause() {
-//        isPlaying = when(isPlaying) {
-//            true -> {
-//                launchIntentToPlayer(MediaPlayerService.ACTION_PAUSE)
-//                false
-//            }
-//            false -> {
-//                launchIntentToPlayer(MediaPlayerService.ACTION_PLAY)
-//                true
-//            }
-//            else -> {
-//                playAudio(audioIndex)
-//                true
-//            }
-//        }
         isPlaying = playerListener?.onPlayOrPause()
         when (isPlaying) {
             true -> play()
@@ -374,42 +268,25 @@ class PlayerFragment : Fragment() {
     }
 
     private fun onSkipToPrevious() {
-//        if (isPlaying != null) {
-//            launchIntentToPlayer(MediaPlayerService.ACTION_PREVIOUS)
-//        }
         playerListener?.onSkipToPrevious()
     }
 
     private fun onSkipToNext() {
-//        if (isPlaying != null) {
-//            launchIntentToPlayer(MediaPlayerService.ACTION_NEXT)
-//        }
         playerListener?.onSkipToNext()
     }
 
     private fun onSeekTo(progress: Int) {
-//        if (isPlaying != null) {
-//            launchIntentToPlayer(MediaPlayerService.ACTION_SEEK, progress, progress)
-//        }
         playerListener?.onSeekTo(progress)
     }
 
-    private fun launchIntentToPlayer(action: String, requestCode: Int = -1, progress: Int? = null) {
-        context?.let { context->
-            val playbackAction = Intent(context, MediaPlayerService::class.java)
-            playbackAction.action = action
-            Log.d(TAG, "progress: $progress")
-            progress?.let { playbackAction.putExtra(MediaPlayerService.ARG_SEEK_DURATION, progress) }
-            PendingIntent.getService(context, requestCode, playbackAction, 0).send()
-        }
-    }
-
     fun minimize() {
+        isMinimized = true
         view?.bigPlayer?.visibility = View.GONE
         view?.smallPlayer?.visibility = View.VISIBLE
     }
 
     fun maximize() {
+        isMinimized = false
         view?.bigPlayer?.visibility = View.VISIBLE
         view?.smallPlayer?.visibility = View.GONE
     }

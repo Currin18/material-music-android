@@ -10,6 +10,7 @@ import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
 import android.util.Log
+import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_NEXT
 import java.io.IOException
 import java.lang.ref.WeakReference
 
@@ -22,7 +23,7 @@ import java.lang.ref.WeakReference
 class PlaybackService: Service() {
 
     companion object {
-        private const val TAG = "PlabackService"
+        private const val TAG = "PlaybackService"
 
         private const val FOCUS_CHANGE = 10
         private const val FADE_DOWN = 11
@@ -276,6 +277,7 @@ class PlaybackService: Service() {
         override fun onCompletion(mp: MediaPlayer?) {
             player?.release()
             player = null
+            sendBroadcast(Intent(ACTION_NEXT))
         }
 
         override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {

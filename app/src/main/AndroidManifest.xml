@@ -17,22 +17,10 @@
             android:roundIcon="@mipmap/ic_launcher_headset_round"
             android:supportsRtl="true"
             android:theme="@style/AppTheme.NoActionBar">
-        <activity android:name=".ui.activities.ArtistDetailActivity"></activity>
-        <activity android:name=".ui.activities.AlbumDetailActivity" />
+        <service android:name=".services.PlaybackService" />
 
-        <service android:name=".services.MediaPlayerService" />
-        <service android:name=".services.PlaybackService" /> <!-- <activity -->
-        <!-- android:name=".PlayerActivity" -->
-        <!-- android:label="@string/title_activity_player" -->
-        <!-- android:theme="@style/AppTheme.NoActionBar"> -->
-        <!-- <intent-filter> -->
-        <!-- <action android:name="android.intent.action.MAIN" /> -->
-        <!-- <category android:name="android.intent.category.LAUNCHER" /> -->
-        <!-- </intent-filter> -->
-        <!-- &lt;!&ndash;            <intent-filter>&ndash;&gt; -->
-        <!-- &lt;!&ndash;                <action android:name="android.intent.action.VIEW" />&ndash;&gt; -->
-        <!-- &lt;!&ndash;            </intent-filter>&ndash;&gt; -->
-        <!-- </activity> -->
+        <activity android:name=".ui.activities.ArtistDetailActivity" />
+        <activity android:name=".ui.activities.AlbumDetailActivity" />
         <activity
                 android:name=".ui.activities.MainActivity"
                 android:label="@string/app_name">

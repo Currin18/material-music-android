@@ -1,16 +1,13 @@
 package com.jesusmoreira.materialmusic.ui.activities
 
-import android.app.Activity
 import android.content.*
 import android.content.pm.PackageManager
-import android.database.Cursor
 import android.media.AudioManager
-import android.net.Uri
 import android.os.Bundle
+import android.os.Handler
 import android.os.IBinder
-import android.provider.MediaStore
+import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
-import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
@@ -19,26 +16,20 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.jesusmoreira.materialmusic.R
-import com.jesusmoreira.materialmusic.models.Album
-import com.jesusmoreira.materialmusic.models.Artist
-import com.jesusmoreira.materialmusic.services.MediaPlayerService
-import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.models.*
+import com.jesusmoreira.materialmusic.services.PlayerBroadcast
 import com.jesusmoreira.materialmusic.ui.fragments.albums.AlbumListener
 import com.jesusmoreira.materialmusic.ui.fragments.artists.ArtistListener
-import com.jesusmoreira.materialmusic.ui.fragments.songs.TabSongsFragment
 import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerFragment
 import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerListener
 import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
-import com.jesusmoreira.materialmusic.utils.GeneralUtil
-import com.jesusmoreira.materialmusic.utils.PlaybackUtil
-import com.jesusmoreira.materialmusic.utils.ServiceUtil
-import com.jesusmoreira.materialmusic.utils.StorageUtil
+import com.jesusmoreira.materialmusic.utils.*
 import kotlinx.android.synthetic.main.activity_player.*
 
 class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  SongListener, AlbumListener, ArtistListener {
 
     companion object {
-        const val SERVICE_STATE: String = "ServiceState"
+        const val TAG: String = "MainActivity"
 
         const val AUDIO_LIST_REQUEST: Int = 1002
 
@@ -52,14 +43,34 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
             }
     }
 
-    private var serviceBound = false
-    private var audioList: ArrayList<Audio> = arrayListOf()
-    private var audioIndex: Int = 0
+    private var mediaSession: MediaSessionCompat? = null
 
-    private var player: MediaPlayerService? = null
-    private var serviceConnection : ServiceConnection? = null
+    private var audioList: ArrayList<Audio> = arrayListOf()
+    private var audioListBackup: ArrayList<Audio> = arrayListOf()
+    private var audioIndex: Int = 0
+    private var shuffleMode: ShuffleStatus = ShuffleStatus.NO_SHUFFLE
 
     private var token: ServiceUtil.ServiceToken? = null
+
+    private var playerFragment: PlayerFragment? = null
+
+    private val playerBroadcast: PlayerBroadcast = object : PlayerBroadcast() {
+        override fun onActionPlayOrPause() {
+            if (onPlayOrPause()) {
+                playerFragment?.play()
+            } else {
+                playerFragment?.pause()
+            }
+        }
+
+        override fun onActionPrevious() {
+            onSkipToPrevious()
+        }
+
+        override fun onActionNext() {
+            onSkipToNext()
+        }
+    }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -81,48 +92,26 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
 //        setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
 
-        serviceConnection = object: ServiceConnection {
-            override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-                // We've bound to LocalService, cast the IBinder and get LocalService instance
-                val binder : MediaPlayerService.LocalBinder = service as MediaPlayerService.LocalBinder
-                player = binder.getService()
-                serviceBound = true
-
-//                Toast.makeText(this@MainActivity, "Service Bound", Toast.LENGTH_SHORT).show()
-            }
-
-            override fun onServiceDisconnected(name: ComponentName?) {
-                serviceBound = false
-            }
-        }
-
-//        button.setOnClickListener {
-//            val storage = StorageUtil(this)
-//            audioList?.let { supportFragmentManager.beginTransaction().replace(R.id.player, PlayerFragment.newInstance(it, 0, true)).commit() }
-//        }
-
         if (ContextCompat.checkSelfPermission(this, android.Manifest.permission.READ_EXTERNAL_STORAGE) == PackageManager.PERMISSION_GRANTED) {
-//            button.visibility = View.VISIBLE
-//            loadAudio()
+
         } else {
             // Ask for permission
             ActivityCompat.requestPermissions(this, arrayOf(android.Manifest.permission.READ_EXTERNAL_STORAGE), 0)
         }
 
-//        intent?.extras?.apply {
-//            audioList = StorageUtil.audioListFromString(getString(ARG_AUDIO_LIST))
-//            audioIndex = getInt(ARG_INDEX)
-//        }
-//        if (!audioList.isNullOrEmpty()) {
-//            startPlayer(audioList, audioIndex)
-//        }
-
         volumeControlStream = AudioManager.STREAM_MUSIC
 
         token = ServiceUtil.bindToService(this, this)
+
+        mediaSession = MediaSessionCompat(this@MainActivity, "MediaSession")
+        playerBroadcast.registerReceiver(this@MainActivity)
     }
 
     override fun onDestroy() {
+        NotificationUtil.removeNotification(this@MainActivity)
+        playerBroadcast.unregisterReceiver(this@MainActivity)
+
+        PlaybackUtil.stop()
 
         token?.let {
             ServiceUtil.unbindFromService(it)
@@ -130,38 +119,20 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         }
 
         super.onDestroy()
-
-        if (serviceBound) {
-            serviceConnection?.let { unbindService(it) }
-            // service is active
-            player?.stopSelf()
-        }
     }
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
-        Log.i("MainActivity", "Service connected: $name")
+        Log.i(TAG, "Service connected: $name")
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
-        Log.i("MainActivity", "Service disconnected: $name")
-    }
-
-    override fun onSaveInstanceState(outState: Bundle) {
-        outState.putBoolean(PlayerActivity.SERVICE_STATE, serviceBound)
-        super.onSaveInstanceState(outState)
-    }
-
-    override fun onRestoreInstanceState(savedInstanceState: Bundle) {
-        super.onRestoreInstanceState(savedInstanceState)
-        serviceBound = savedInstanceState.getBoolean(PlayerActivity.SERVICE_STATE)
+        Log.i(TAG, "Service disconnected: $name")
     }
 
     override fun onRequestPermissionsResult(requestCode: Int, permissions: Array<out String>, grantResults: IntArray) {
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
-//            button.visibility = View.VISIBLE
-//            loadAudio()
         } else {
             GeneralUtil.longToast(this, "Permission not granted. Shutting down.")
             finish()
@@ -177,48 +148,51 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
                         audioIndex = getInt(ARG_INDEX)
                     }
                     if (!audioList.isNullOrEmpty()) {
-                        startPlayer(audioList, audioIndex)
+                        onSongClicked(audioList, audioIndex)
                     }
                 }
             }
     }
 
+
+    var doubleBackToExitPressedOnce = false
+
     override fun onBackPressed() {
-        val playerFragments = supportFragmentManager.fragments.filterIsInstance<PlayerFragment>()
-        if (playerFragments.isNotEmpty()) {
-            with(playerFragments[0]) {
-                if (!this.isMinimized) {
-                    this.minimize()
-                } else {
-                    super.onBackPressed()
-                }
-            }
+        if (playerFragment?.isMinimized == false) {
+            playerFragment?.minimize()
         } else {
-            super.onBackPressed()
+
+            if (doubleBackToExitPressedOnce)
+                super.onBackPressed()
+
+            doubleBackToExitPressedOnce = true
+            GeneralUtil.shortToast(this, "Please click BACK again to exit")
+
+            Handler().postDelayed({
+                doubleBackToExitPressedOnce = false
+            }, 3000)
         }
     }
-
-//    override fun setServiceBoundState(serviceBoundState: Boolean) {
-//        serviceBound = serviceBoundState
-//    }
-//
-//    override fun getServiceBoundState(): Boolean {
-//        return serviceBound
-//    }
-//
-//    override fun bindService(service: Intent, flags: Int) {
-//        serviceConnection?.let {
-//            bindService(service, it, flags)
-//        }
-//    }
 
     override fun onPlayOrPause(): Boolean {
         with(PlaybackUtil) {
             return if (isPlaying()) {
                 pause()
+                NotificationUtil.buildNotification(
+                    this@MainActivity,
+                    mediaSession,
+                    audioList[audioIndex],
+                    PlaybackStatus.PAUSED
+                )
                 false
             } else {
                 play()
+                NotificationUtil.buildNotification(
+                    this@MainActivity,
+                    mediaSession,
+                    audioList[audioIndex],
+                    PlaybackStatus.PLAYING
+                )
                 true
             }
         }
@@ -245,19 +219,39 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
     }
 
     override fun onGetProgress(): Int? {
-//        return player?.getProgress()
         return PlaybackUtil.getPosition().toInt()
     }
 
-    override fun onSongClicked(audioList: ArrayList<Audio>, position: Int) {
-        this.audioList = audioList
-        this.audioIndex = position
-        startPlayer(audioList, position)
+    override fun onChangeShuffle(shuffleStatus: ShuffleStatus) {
+        shuffleMode = shuffleStatus
+        when (shuffleMode) {
+            ShuffleStatus.NO_SHUFFLE -> {
+                audioIndex = audioListBackup.indexOf(audioList[audioIndex])
+                audioList = audioListBackup
+            }
+            ShuffleStatus.SHUFFLE -> {
+                audioListBackup = audioList
+                audioList = audioList.shuffled() as ArrayList<Audio>
+                audioIndex = this.audioList.indexOf(audioListBackup[audioIndex])
+            }
+        }
+
+        startPlayer(audioList, audioIndex)
+    }
+
+    override fun onSongClicked(audioList: ArrayList<Audio>, position: Int, preventShuffle: Boolean) {
+        if (shuffleMode == ShuffleStatus.SHUFFLE && !preventShuffle) {
+            audioListBackup = audioList
+            this.audioList = audioList.shuffled() as ArrayList<Audio>
+            audioIndex = this.audioList.indexOf(audioList[position])
+        } else {
+            this.audioList = audioList
+            audioIndex = position
+        }
+        startPlayer(this.audioList, audioIndex)
     }
 
     override fun onAlbumClicked(album: Album) {
-//        val playerIntent = Intent(applicationContext, MediaPlayerService::class.java)
-//        stopService(playerIntent)
         startActivityForResult(AlbumDetailActivity.newIntent(applicationContext, album), AUDIO_LIST_REQUEST)
     }
 
@@ -265,36 +259,29 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         startActivityForResult(ArtistDetailActivity.newIntent(applicationContext, artist), AUDIO_LIST_REQUEST)
     }
 
-    private fun startPlayer(audioList: ArrayList<Audio>, position: Int) {
-        with(PlaybackUtil) {
-            if (isPlaying()) {
-                stop()
-            }
-            openFile(audioList[position].uri.toString())
+    private fun startPlayer(list: ArrayList<Audio>, position: Int) {
+        audioList = list
+        audioIndex = position
 
-            play()
+        if (PlaybackUtil.isPlaying()) {
+            PlaybackUtil.stop()
         }
+        PlaybackUtil.openFile(audioList[audioIndex].uri.toString())
 
-        supportFragmentManager.beginTransaction()
-            .replace(R.id.player, PlayerFragment.newInstance(audioList, position, false))
-            .commitNow()
+        PlaybackUtil.play()
+
+        NotificationUtil.buildNotification(
+            this@MainActivity,
+            mediaSession,
+            audioList[audioIndex],
+            PlaybackStatus.PLAYING
+        )
+
+        with(PlayerFragment.newInstance(audioList, audioIndex, false, shuffleMode.value)) {
+            playerFragment = this
+            supportFragmentManager.beginTransaction()
+                .replace(R.id.player, this)
+                .commitNow()
+        }
     }
-
-//    private fun loadAudio() {
-//        val contentResolver: ContentResolver? = contentResolver
-//        val uri: Uri = MediaStore.Audio.Media.EXTERNAL_CONTENT_URI
-//        val selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
-//        val sortOrder = "${MediaStore.Audio.Media.TITLE} ASC"
-//        val cursor: Cursor? = contentResolver?.query(uri, null, selection, null, sortOrder)
-//
-//        cursor?.let {
-//            if (it.count > 0) {
-//                audioList = arrayListOf()
-//                while (cursor.moveToNext()) {
-//                    audioList?.add(Audio(cursor))
-//                }
-//            }
-//            it.close()
-//        }
-//    }
 }

@@ -76,6 +76,7 @@ data class Album(
                     ))
                 }
                 else -> {
+                    @Suppress("DEPRECATION")
                     MediaStore.Images.Media.getBitmap(
                         context.contentResolver, albumArtUri
                     )

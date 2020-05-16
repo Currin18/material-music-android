@@ -10,20 +10,25 @@ import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
 import androidx.media.app.NotificationCompat
 import com.jesusmoreira.materialmusic.R
-import com.jesusmoreira.materialmusic.services.MediaPlayerService
-import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_NEXT
-import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_PAUSE
-import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_PLAY
-import com.jesusmoreira.materialmusic.services.MediaPlayerService.Companion.ACTION_PREVIOUS
 import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.models.PlaybackStatus
+import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_NEXT
+import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_PLAY_OR_PAUSE
+import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_PREVIOUS
+import com.jesusmoreira.materialmusic.ui.activities.MainActivity
 
 object NotificationUtil {
-    private const val NOTIFICATION_ID = 1001
+    private const val NOTIFICATION_ID = 2000
 
     private const val CHANNEL_ID = "MediaPlayer"
     private const val CHANNEL_NAME = "MediaPlayer"
     private const val CHANNEL_DESCRIPTION = "MediaPlayer"
+
+    private const val DEFAULT: Int = 2000
+    private const val PLAY: Int = 2001
+    private const val PAUSE: Int = 2002
+    private const val PREVIOUS: Int = 2003
+    private const val NEXT: Int = 2004
 
     fun buildNotification(context: Context, mediaSession: MediaSessionCompat?, audio: Audio?, playbackStatus: PlaybackStatus) {
         var notificationAction = android.R.drawable.ic_media_pause // Needs to be initialized
@@ -34,12 +39,12 @@ object NotificationUtil {
             PlaybackStatus.PLAYING -> {
                 notificationAction = R.drawable.ic_pause_white_24dp
                 // Create the pause action
-                playbackAction(context, 1)
+                playbackAction(context, PAUSE)
             }
             PlaybackStatus.PAUSED -> {
                 notificationAction = R.drawable.ic_play_arrow_white_24dp
                 // Create the play action
-                playbackAction(context, 0)
+                playbackAction(context, PLAY)
             }
         }
 
@@ -86,10 +91,11 @@ object NotificationUtil {
             .setContentText(audio?.artist)
             .setContentTitle(audio?.title)
             .setContentInfo(audio?.album)
+            .setContentIntent(playbackAction(context, null))
             // Add playback actions
-            .addAction(R.drawable.ic_skip_previous_white_24dp, "previous", playbackAction(context, 3))
+            .addAction(R.drawable.ic_skip_previous_white_24dp, "previous", playbackAction(context, PREVIOUS))
             .addAction(notificationAction, "pause", playOrPauseAction)
-            .addAction(R.drawable.ic_skip_next_white_24dp, "next", playbackAction(context, 2))
+            .addAction(R.drawable.ic_skip_next_white_24dp, "next", playbackAction(context, NEXT))
 
         notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
 
@@ -100,30 +106,30 @@ object NotificationUtil {
             ?.cancel(NOTIFICATION_ID)
     }
 
-    private fun playbackAction(context: Context, actionNumber: Int): PendingIntent? {
-        val playbackAction = Intent(context, MediaPlayerService::class.java)
-        return when (actionNumber) {
-            0 -> {
-                // Play
-                playbackAction.action = ACTION_PLAY
-                PendingIntent.getService(context, actionNumber, playbackAction, 0)
+    private fun playbackAction(context: Context, action: Int?): PendingIntent? {
+//        val playbackAction = Intent(context, MediaPlayerService::class.java)
+//        Intent intent=new Intent("com.example.andy.CUSTOM_INTENT");
+//        sendBroadcast(intent);
+
+        return when (action) {
+            PLAY -> {
+                PendingIntent.getBroadcast(context, action, Intent(ACTION_PLAY_OR_PAUSE), 0)
             }
-            1 -> {
-                // Play
-                playbackAction.action = ACTION_PAUSE
-                PendingIntent.getService(context, actionNumber, playbackAction, 0)
+            PAUSE -> {
+                PendingIntent.getBroadcast(context, action, Intent(ACTION_PLAY_OR_PAUSE), 0)
             }
-            2 -> {
-                // Play
-                playbackAction.action = ACTION_NEXT
-                PendingIntent.getService(context, actionNumber, playbackAction, 0)
+            PREVIOUS -> {
+                PendingIntent.getBroadcast(context, action, Intent(ACTION_PREVIOUS), 0)
             }
-            3 -> {
-                // Play
-                playbackAction.action = ACTION_PREVIOUS
-                PendingIntent.getService(context, actionNumber, playbackAction, 0)
+            NEXT -> {
+                PendingIntent.getBroadcast(context, action, Intent(ACTION_NEXT), 0)
             }
-            else -> null
+            else -> {
+                val notifyIntent= Intent(context, MainActivity::class.java).apply {
+                    flags = Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP
+                }
+                PendingIntent.getActivity(context, DEFAULT, notifyIntent, 0)
+            }
         }
     }
 }

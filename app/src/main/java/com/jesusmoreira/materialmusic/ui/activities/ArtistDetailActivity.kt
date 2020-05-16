@@ -50,7 +50,7 @@ class ArtistDetailActivity : AppCompatActivity(), SongListener, AlbumListener {
         }
     }
 
-    override fun onSongClicked(audioList: ArrayList<Audio>, position: Int) {
+    override fun onSongClicked(audioList: ArrayList<Audio>, position: Int, preventShuffle: Boolean) {
         val intent = Intent().apply {
             putExtra(MainActivity.ARG_AUDIO_LIST, StorageUtil.audioListToString(audioList))
             putExtra(MainActivity.ARG_INDEX, position)

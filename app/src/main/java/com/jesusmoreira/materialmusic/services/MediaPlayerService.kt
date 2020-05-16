@@ -214,7 +214,7 @@ class MediaPlayerService : Service(),
             // Reset mediaPlayer
             mediaPlayer?.reset()
             initMediaPlayer()
-            sendBroadcast(Intent(PlayerFragment.NEXT).putExtra("index",
+            sendBroadcast(Intent(ACTION_NEXT).putExtra("index",
                 audioIndex
             ))
         }
@@ -240,7 +240,7 @@ class MediaPlayerService : Service(),
             // Reset mediaPlayer
             mediaPlayer?.reset()
             initMediaPlayer()
-            sendBroadcast(Intent(PlayerFragment.PREVIOUS).putExtra("index",
+            sendBroadcast(Intent(ACTION_PREVIOUS).putExtra("index",
                 audioIndex
             ))
         }
@@ -251,7 +251,7 @@ class MediaPlayerService : Service(),
         mediaPlayer?.let {
             if (!it.isPlaying) {
                 it.start()
-                sendBroadcast(Intent(PlayerFragment.PLAY))
+                sendBroadcast(Intent(ACTION_PLAY))
             }
         }
     }
@@ -260,7 +260,7 @@ class MediaPlayerService : Service(),
         mediaPlayer?.let {
             if (it.isPlaying){
                 it.stop()
-                sendBroadcast(Intent(PlayerFragment.STOP))
+                sendBroadcast(Intent(ACTION_STOP))
             }
         }
     }
@@ -270,7 +270,7 @@ class MediaPlayerService : Service(),
             if (it.isPlaying) {
                 it.pause()
                 resumePosition = it.currentPosition
-                sendBroadcast(Intent(PlayerFragment.PAUSE))
+                sendBroadcast(Intent(ACTION_PAUSE))
             }
         }
     }
@@ -280,7 +280,7 @@ class MediaPlayerService : Service(),
             if (!it.isPlaying) {
                 it.seekTo(resumePosition)
                 it.start()
-                sendBroadcast(Intent(PlayerFragment.PLAY))
+                sendBroadcast(Intent(ACTION_PLAY))
             }
         }
     }

@@ -22,7 +22,7 @@ class PlayListRecyclerViewAdapter(
             val position = v.tag as Int
             // Notify the active callbacks interface (the activity, if the fragment is attached to
             // one) that an item has been selected.
-            listener?.onSongClicked(playList, position)
+            listener?.onSongClicked(playList, position, true)
         }
     }
 

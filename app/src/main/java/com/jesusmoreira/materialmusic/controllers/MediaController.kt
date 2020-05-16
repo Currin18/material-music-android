@@ -13,6 +13,7 @@ class MediaController(private val context: Context) {
 
     companion object {
         private const val SELECTION_AUDIO_IS_MUSIC = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+//            + " AND _data LIKE '%/Music/%'"
     }
 
     private fun getAudioContent(
@@ -61,7 +62,6 @@ class MediaController(private val context: Context) {
 
     fun getMusicList(): ArrayList<Audio> {
         val musicList = arrayListOf<Audio>()
-
         getAudioContent(selection = SELECTION_AUDIO_IS_MUSIC).use { cursor ->
             while(cursor?.moveToNext() == true) {
                 musicList.add(Audio(cursor))
@@ -74,8 +74,8 @@ class MediaController(private val context: Context) {
     fun getMusicListFromAlbum(album: Album): ArrayList<Audio> {
         val musicList = arrayListOf<Audio>()
 
-        getAudioContent(selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0 " +
-                "AND ${MediaStore.Audio.Media.ALBUM_ID} == ${album.albumId}").use { cursor ->
+        getAudioContent(selection = SELECTION_AUDIO_IS_MUSIC +
+                " AND ${MediaStore.Audio.Media.ALBUM_ID} == ${album.albumId}").use { cursor ->
             while(cursor?.moveToNext() == true) {
                 musicList.add(Audio(cursor))
             }
@@ -87,7 +87,7 @@ class MediaController(private val context: Context) {
     fun getMusicListFromAlbumList(albumList: ArrayList<Album>): ArrayList<Audio> {
         val musicList = arrayListOf<Audio>()
 
-        var selection = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
+        var selection = SELECTION_AUDIO_IS_MUSIC
         if (albumList.isNotEmpty()) {
             selection += " AND ("
             for (i in 0 until albumList.size) {
