@@ -2,9 +2,12 @@ package com.jesusmoreira.materialmusic.utils
 
 import android.content.Context
 import android.content.SharedPreferences
+import android.os.Environment
+import androidx.core.content.ContextCompat
 import com.google.gson.Gson
 import com.google.gson.reflect.TypeToken
 import com.jesusmoreira.materialmusic.models.Audio
+import java.io.File
 import java.lang.reflect.Type
 
 
@@ -21,6 +24,27 @@ class StorageUtil(val context: Context) {
                 null -> arrayListOf()
                 else -> Gson().fromJson(json, object : TypeToken<ArrayList<Audio>?>() {}.type)
             }
+        }
+
+        /**
+         * Checks if a volume containing external storage is available to at least read.
+         */
+        @Suppress("MemberVisibilityCanBePrivate")
+        fun isExternalStorageReadable(): Boolean =
+            Environment.getExternalStorageState() in
+                    setOf(Environment.MEDIA_MOUNTED, Environment.MEDIA_MOUNTED_READ_ONLY)
+
+        fun getExternalStorage(context: Context): File? {
+            if (isExternalStorageReadable()) {
+                val externalStorageVolumes: Array<out File> =
+                    ContextCompat.getExternalFilesDirs(context, null)
+
+                if (!externalStorageVolumes.isNullOrEmpty()) {
+                    return externalStorageVolumes[0]
+                }
+            }
+
+            return null
         }
     }
 

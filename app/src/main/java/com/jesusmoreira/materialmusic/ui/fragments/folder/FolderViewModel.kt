@@ -6,8 +6,10 @@ import androidx.lifecycle.ViewModel
 
 class FolderViewModel : ViewModel() {
 
-    private val _text = MutableLiveData<String>().apply {
+//    private var _text = MutableLiveData<String>().apply {
+//        value = "This is Folder Fragment"
+//    }
+    var text: MutableLiveData<String> = MutableLiveData<String>().apply {
         value = "This is Folder Fragment"
     }
-    val text: LiveData<String> = _text
 }
