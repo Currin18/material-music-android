@@ -31,47 +31,53 @@ android {
         jvmTarget = JavaVersion.VERSION_1_8.toString()
     }
 
-    viewBinding.enabled = true
+//    viewBinding.enabled = true
+
+    // The default value for each feature is shown below. You can change the value to
+    // override the default behavior.
+    buildFeatures {
+        // Determines whether to generate a BuildConfig class.
+        buildConfig = true
+        // Determines whether to support View Binding.
+        // Note that the viewBinding.enabled property is now deprecated.
+        viewBinding = true
+        // Determines whether to support Data Binding.
+        // Note that the dataBinding.enabled property is now deprecated.
+        dataBinding = false
+        // Determines whether to generate binder classes for your AIDL files.
+        aidl = true
+        // Determines whether to support RenderScript.
+        renderScript = true
+        // Determines whether to support injecting custom variables into the module's R class.
+        resValues = true
+        // Determines whether to support shader AOT compilation.
+        shaders = true
+    }
 }
 
 dependencies {
     implementation fileTree(dir: 'libs', include: ['*.jar'])
 
-//    implementation deps.androidx.core
-//    implementation deps.androidx.appcompat
-//    implementation deps.androidx.constraintlayout
-//    implementation deps.androidx.recyclerview
-//    implementation deps.androidx.legacy_support_v4
-//
-//    implementation deps.androidx.navigation_fragment
-//    implementation deps.androidx.navigation_ui
-//    implementation deps.androidx.lifecycle_extensions
-//    implementation deps.androidx.navigation_fragment_ktx
-//    implementation deps.androidx.navigation_ui_ktx
-//    implementation deps.androidx.lifecycle_viewmodel_ktx
-//
-//    implementation deps.material
-//
-//    implementation deps.mplaylib
-//    implementation deps.jetbrains.anko
-//    implementation deps.jetbrains.kotlin_stdlib_jdk7
-//    implementation deps.jetbrains.kotlinx_coroutines_core
-//    implementation deps.jetbrains.kotlinx_coroutines_android
+    testImplementation "junit:junit:$versions.junit"
+    androidTestImplementation "androidx.test.ext:junit:$versions.androidx_junit"
+    androidTestImplementation "androidx.test.espresso:espresso-core:$versions.espresso"
 
     implementation "androidx.core:core-ktx:$versions.core"
     implementation "androidx.appcompat:appcompat:$versions.support"
     implementation "androidx.constraintlayout:constraintlayout:$versions.constraintlayout"
     implementation "androidx.recyclerview:recyclerview:$versions.recyclerview"
     implementation "androidx.legacy:legacy-support-v4:$versions.legacy"
+    implementation 'androidx.palette:palette-ktx:1.0.0'
 
     implementation "androidx.navigation:navigation-fragment:$versions.navigation"
     implementation "androidx.navigation:navigation-ui:$versions.navigation"
     implementation "androidx.navigation:navigation-fragment-ktx:$versions.navigation"
     implementation "androidx.navigation:navigation-ui-ktx:$versions.navigation"
-    implementation "androidx.lifecycle:lifecycle-extensions:$versions.navigation"
-    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$versions.navigation"
+    implementation "androidx.lifecycle:lifecycle-extensions:$versions.lifecycle"
+    implementation "androidx.lifecycle:lifecycle-viewmodel-ktx:$versions.lifecycle"
 
     implementation "com.google.android.material:material:$versions.material"
+    implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.5', changing: true
 
     implementation "org.jetbrains.anko:anko:$versions.anko"
     implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk7:$versions.kotlin"
@@ -80,18 +86,5 @@ dependencies {
 
     implementation "com.mtechviral.mplaylib:mplaylib:$versions.mplaylib"
 
-    implementation "com.google.android.material:material:$versions.material"
-    implementation 'androidx.legacy:legacy-support-v4:1.0.0'
-    implementation 'androidx.lifecycle:lifecycle-extensions:2.2.0'
-    implementation 'androidx.lifecycle:lifecycle-viewmodel-ktx:2.2.0'
-    implementation 'androidx.appcompat:appcompat:1.1.0'
-    implementation 'androidx.constraintlayout:constraintlayout:1.1.3'
-    testImplementation "junit:junit:$versions.junit"
-    androidTestImplementation "androidx.test.ext:junit:$versions.androidx_junit"
-    androidTestImplementation "androidx.test.espresso:espresso-core:$versions.espresso"
-
-    implementation group: 'com.google.code.gson', name: 'gson', version: '2.8.5', changing: true
-
     implementation 'com.sothree.slidinguppanel:library:3.4.0'
-    implementation 'androidx.palette:palette-ktx:1.0.0'
 }

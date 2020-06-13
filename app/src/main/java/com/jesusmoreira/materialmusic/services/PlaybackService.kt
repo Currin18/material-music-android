@@ -9,8 +9,14 @@ import android.media.AudioManager
 import android.media.MediaPlayer
 import android.net.Uri
 import android.os.*
+import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
-import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_COMPLETION
+import com.jesusmoreira.materialmusic.models.PlaybackStatus
+import com.jesusmoreira.materialmusic.models.RepeatMode
+import com.jesusmoreira.materialmusic.utils.GeneralUtil
+import com.jesusmoreira.materialmusic.utils.NotificationUtil
+import com.jesusmoreira.materialmusic.utils.PreferenceUtil
+import com.jesusmoreira.materialmusic.utils.StorageUtil
 import java.io.IOException
 import java.lang.ref.WeakReference
 
@@ -39,6 +45,8 @@ class PlaybackService: Service() {
 
     private var mediaPlayerHandler: MediaPlaybackHandler? = null
 
+    private var mediaSession: MediaSessionCompat? = null
+
     private val audioFocusListener: AudioManager.OnAudioFocusChangeListener =
         AudioManager.OnAudioFocusChangeListener { focusChange ->
             mediaPlayerHandler?.obtainMessage(FOCUS_CHANGE, focusChange, 0)?.sendToTarget()
@@ -46,6 +54,21 @@ class PlaybackService: Service() {
 
     private var pauseByTransientLossOfFocus = false
     private var isSupposedToBePlaying = false
+
+    private val playbackBroadcast: PlaybackBroadcast = object : PlaybackBroadcast() {
+        override fun onActionPlayOrPause() {
+            if (isSupposedToBePlaying) pause()
+            else play()
+        }
+
+        override fun onActionPrevious() {
+            previous()
+        }
+
+        override fun onActionNext() {
+            next()
+        }
+    }
 
     override fun onCreate() {
         super.onCreate()
@@ -63,13 +86,19 @@ class PlaybackService: Service() {
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
+        mediaSession = MediaSessionCompat(this@PlaybackService, "MediaSession")
+
         Log.i(TAG, "MediaPlayback class instantiated")
         mediaPlayback = MediaPlayback()
         mediaPlayback?.handler = mediaPlayerHandler
+
+        playbackBroadcast.registerReceiver(this@PlaybackService)
     }
 
     override fun onDestroy() {
         super.onDestroy()
+
+        playbackBroadcast.unregisterReceiver(this@PlaybackService)
 
         Log.w(TAG, "Destroying service")
         mediaPlayback?.release()
@@ -84,7 +113,11 @@ class PlaybackService: Service() {
             mediaPlayback?.let {
                 if (it.isPlayerInitialized) it.stop()
             }
+
+            sendBroadcast(Intent(PlayerBroadcast.ACTION_PAUSE))
         }
+
+        NotificationUtil.removeNotification(this@PlaybackService)
     }
 
     fun play() {
@@ -115,6 +148,8 @@ class PlaybackService: Service() {
                     isSupposedToBePlaying = true
                 }
             }
+
+            sendBroadcast(Intent(PlayerBroadcast.ACTION_PLAY))
         }
     }
 
@@ -128,6 +163,120 @@ class PlaybackService: Service() {
                 isSupposedToBePlaying = false
                 pauseByTransientLossOfFocus = false
             }
+
+            sendBroadcast(Intent(PlayerBroadcast.ACTION_PAUSE))
+        }
+    }
+
+    private fun previous() {
+        // Audio stopped
+        stop()
+
+        val audioList = StorageUtil.audioListFromString(PreferenceUtil.getAudioList(this@PlaybackService))
+        var audioIndex = PreferenceUtil.getAudioIndex(this@PlaybackService) ?: 0
+
+        audioIndex = when {
+            audioIndex - 1 < 0 -> audioList.size
+            else -> audioIndex - 1
+        }
+        val audio = audioList[audioIndex]
+
+        // New audio Loaded
+        openFile(audio.uri.toString())
+
+        PreferenceUtil.setAudioIndex(this@PlaybackService, audioIndex)
+
+        sendBroadcast(Intent(PlayerBroadcast.ACTION_REFRESH))
+        NotificationUtil.buildNotification(
+            this@PlaybackService,
+            mediaSession,
+            PlaybackStatus.PLAYING
+        )
+
+        // Audio started
+        play()
+    }
+
+    private fun next() {
+        // Audio stopped
+        stop()
+
+        val audioList = StorageUtil.audioListFromString(PreferenceUtil.getAudioList(this@PlaybackService))
+        var audioIndex = PreferenceUtil.getAudioIndex(this@PlaybackService) ?: 0
+
+        audioIndex = when {
+            audioIndex + 1 >= audioList.size -> 0
+            else -> audioIndex + 1
+        }
+        val audio = audioList[audioIndex]
+        Log.d(TAG, "Preferences: ${audio.displayName}")
+
+        // New audio Loaded
+        openFile(audio.uri.toString())
+
+        PreferenceUtil.setAudioIndex(this@PlaybackService, audioIndex)
+
+        sendBroadcast(Intent(PlayerBroadcast.ACTION_REFRESH))
+        NotificationUtil.buildNotification(
+            this@PlaybackService,
+            mediaSession,
+            PlaybackStatus.PLAYING
+        )
+
+        // Audio started
+        play()
+    }
+
+    private fun complete() {
+        // Audio stopped
+        stop()
+
+        val audioList = StorageUtil.audioListFromString(PreferenceUtil.getAudioList(this@PlaybackService))
+        var audioIndex = PreferenceUtil.getAudioIndex(this@PlaybackService) ?: 0
+        val shuffleMode = GeneralUtil.shuffleModeFromInt(PreferenceUtil.getShuffleMode(this@PlaybackService))
+        var paused = false
+
+        audioIndex = when(GeneralUtil.repeatModeFromInt(PreferenceUtil.getRepeatMode(this@PlaybackService))) {
+            RepeatMode.NO_REPEAT -> {
+//                onSkipToNext()
+                if (audioIndex + 1 < audioList.size) audioIndex + 1
+                else {
+                    paused = true
+                    0
+                }
+            }
+            RepeatMode.REPEAT_ALL -> {
+//                onSkipToNext()
+                if (audioIndex + 1 < audioList.size) audioIndex + 1
+                else 0
+            }
+            RepeatMode.REPEAT_ONE -> {
+                audioIndex
+            }
+        }
+        val audio = audioList[audioIndex]
+
+        // New audio Loaded
+        openFile(audio.uri.toString())
+
+        PreferenceUtil.setAudioIndex(this@PlaybackService, audioIndex)
+
+        sendBroadcast(Intent(PlayerBroadcast.ACTION_REFRESH))
+
+        if (!paused) {
+            // Audio started
+            play()
+            NotificationUtil.buildNotification(
+                this@PlaybackService,
+                mediaSession,
+                PlaybackStatus.PLAYING
+            )
+        } else {
+            NotificationUtil.buildNotification(
+                this@PlaybackService,
+                mediaSession,
+                PlaybackStatus.PAUSED
+            )
         }
     }
 
@@ -195,6 +344,11 @@ class PlaybackService: Service() {
         fun start() {
             player?.start()
             Log.i(TAG, "State: STARTED")
+            NotificationUtil.buildNotification(
+                this@PlaybackService,
+                mediaSession,
+                PlaybackStatus.PLAYING
+            )
         }
 
         fun stop() {
@@ -216,6 +370,12 @@ class PlaybackService: Service() {
         fun pause() {
             player?.pause()
             Log.i(TAG, "State: PAUSED")
+            NotificationUtil.buildNotification(
+                this@PlaybackService,
+                mediaSession,
+                PlaybackStatus.PAUSED
+            )
+
         }
 
         fun getDuration(): Long = when {
@@ -278,8 +438,9 @@ class PlaybackService: Service() {
         override fun onCompletion(mp: MediaPlayer?) {
 //            player?.release()
 //            player = null
-            stop()
-            sendBroadcast(Intent(ACTION_COMPLETION))
+//            stop()
+
+            complete()
         }
 
         override fun onError(mp: MediaPlayer?, what: Int, extra: Int): Boolean {

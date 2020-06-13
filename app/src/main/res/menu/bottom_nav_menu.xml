@@ -9,6 +9,7 @@
     <item
             android:id="@+id/navigation_podcast"
             android:icon="@drawable/ic_rss_feed_black_24dp"
+            android:enabled="false"
             android:title="@string/title_podcast"/>
 
     <item
@@ -19,6 +20,7 @@
     <item
             android:id="@+id/navigation_settings"
             android:icon="@drawable/ic_settings_black_24dp"
+            android:enabled="false"
             android:title="@string/title_settings"/>
 
 

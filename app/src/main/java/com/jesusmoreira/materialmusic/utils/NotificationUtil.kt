@@ -3,21 +3,23 @@ package com.jesusmoreira.materialmusic.utils
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
+import android.app.Service
 import android.content.Context
 import android.content.Context.NOTIFICATION_SERVICE
 import android.content.Intent
 import android.os.Build
 import android.support.v4.media.session.MediaSessionCompat
+import android.util.Log
 import androidx.media.app.NotificationCompat
 import com.jesusmoreira.materialmusic.R
-import com.jesusmoreira.materialmusic.models.Audio
 import com.jesusmoreira.materialmusic.models.PlaybackStatus
-import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_NEXT
-import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_PLAY_OR_PAUSE
-import com.jesusmoreira.materialmusic.services.PlayerBroadcast.Companion.ACTION_PREVIOUS
+import com.jesusmoreira.materialmusic.services.PlaybackBroadcast.Companion.ACTION_NEXT
+import com.jesusmoreira.materialmusic.services.PlaybackBroadcast.Companion.ACTION_PLAY_OR_PAUSE
+import com.jesusmoreira.materialmusic.services.PlaybackBroadcast.Companion.ACTION_PREVIOUS
 import com.jesusmoreira.materialmusic.ui.activities.MainActivity
 
 object NotificationUtil {
+    private const val TAG = "Notification"
     private const val NOTIFICATION_ID = 2000
 
     private const val CHANNEL_ID = "MediaPlayer"
@@ -30,7 +32,7 @@ object NotificationUtil {
     private const val PREVIOUS: Int = 2003
     private const val NEXT: Int = 2004
 
-    fun buildNotification(context: Context, mediaSession: MediaSessionCompat?, audio: Audio?, playbackStatus: PlaybackStatus) {
+    fun buildNotification(context: Context, mediaSession: MediaSessionCompat?, /*audio: Audio?,*/ playbackStatus: PlaybackStatus) {
         var notificationAction = android.R.drawable.ic_media_pause // Needs to be initialized
         var playOrPauseAction: PendingIntent? = null
 
@@ -74,6 +76,11 @@ object NotificationUtil {
 //            else -> GraphicUtil.getBitmapFromVectorDrawable(context, R.drawable.ic_album_black_24dp)
 //        }
 
+
+        val audioList = StorageUtil.audioListFromString(PreferenceUtil.getAudioList(context))
+        val audioIndex = PreferenceUtil.getAudioIndex(context) ?: 0
+        val audio = audioList[audioIndex]
+
         val notificationBuilder = androidx.core.app.NotificationCompat.Builder(context, CHANNEL_ID)
             .setShowWhen(false)
             // Set the Notification style
@@ -85,25 +92,34 @@ object NotificationUtil {
             // Set the notification color
             .setColor(context.resources.getColor(R.color.grey, null))
             // Set large and small icons
-            .setLargeIcon(audio?.getAlbumArtBitmap(context))
+            .setLargeIcon(audio.getAlbumArtBitmap(context))
             .setSmallIcon(R.drawable.ic_headset_white_24dp)
             // Set Notification content information
-            .setContentText(audio?.artist)
-            .setContentTitle(audio?.title)
-            .setContentInfo(audio?.album)
+            .setContentText(audio.artist)
+            .setContentTitle(audio.title)
+            .setContentInfo(audio.album)
             .setContentIntent(playbackAction(context, null))
             // Add playback actions
             .addAction(R.drawable.ic_skip_previous_white_24dp, "previous", playbackAction(context, PREVIOUS))
             .addAction(notificationAction, "pause", playOrPauseAction)
             .addAction(R.drawable.ic_skip_next_white_24dp, "next", playbackAction(context, NEXT))
 
-        notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
+        if (context is Service) {
+//            context.stopForeground(true)
+            context.startForeground(NOTIFICATION_ID, notificationBuilder.build())
+        } else {
+            notificationManager.notify(NOTIFICATION_ID, notificationBuilder.build())
+        }
 
     }
 
     fun removeNotification(context: Context) {
-        (context.getSystemService(NOTIFICATION_SERVICE) as? NotificationManager)
-            ?.cancel(NOTIFICATION_ID)
+        if (context is Service) {
+            context.stopForeground(true)
+        } else {
+            (context.getSystemService(NOTIFICATION_SERVICE) as? NotificationManager)
+                ?.cancel(NOTIFICATION_ID)
+        }
     }
 
     private fun playbackAction(context: Context, action: Int?): PendingIntent? {

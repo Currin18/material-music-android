@@ -135,50 +135,50 @@ class MediaPlayerService : Service(),
         updateMetaData()
 
         // Attach Callback to receive MediaSession updates
-        mediaSession?.setCallback(object: MediaSessionCompat.Callback() {
-            // Implement callback
-
-            override fun onPlay() {
-                super.onPlay()
-                resumeMedia()
-                NotificationUtil.buildNotification(applicationContext, mediaSession,
-                    activeAudio, PlaybackStatus.PLAYING)
-            }
-
-            override fun onPause() {
-                super.onPause()
-                pauseMedia()
-                NotificationUtil.buildNotification(applicationContext, mediaSession,
-                    activeAudio, PlaybackStatus.PAUSED)
-            }
-
-            override fun onSkipToNext() {
-                super.onSkipToNext()
-                skipToNext()
-                updateMetaData()
-                NotificationUtil.buildNotification(applicationContext, mediaSession,
-                    activeAudio, PlaybackStatus.PLAYING)
-            }
-
-            override fun onSkipToPrevious() {
-                super.onSkipToPrevious()
-                skipToPrevious()
-                NotificationUtil.buildNotification(applicationContext, mediaSession,
-                    activeAudio, PlaybackStatus.PLAYING)
-            }
-
-            override fun onStop() {
-                super.onStop()
-                stopMedia()
-                NotificationUtil.removeNotification(applicationContext)
-
-            }
-
-            override fun onSeekTo(position: Long) {
-                super.onSeekTo(position)
-                seekTo(position)
-            }
-        })
+//        mediaSession?.setCallback(object: MediaSessionCompat.Callback() {
+//            // Implement callback
+//
+//            override fun onPlay() {
+//                super.onPlay()
+//                resumeMedia()
+//                NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                    activeAudio, PlaybackStatus.PLAYING)
+//            }
+//
+//            override fun onPause() {
+//                super.onPause()
+//                pauseMedia()
+//                NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                    activeAudio, PlaybackStatus.PAUSED)
+//            }
+//
+//            override fun onSkipToNext() {
+//                super.onSkipToNext()
+//                skipToNext()
+//                updateMetaData()
+//                NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                    activeAudio, PlaybackStatus.PLAYING)
+//            }
+//
+//            override fun onSkipToPrevious() {
+//                super.onSkipToPrevious()
+//                skipToPrevious()
+//                NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                    activeAudio, PlaybackStatus.PLAYING)
+//            }
+//
+//            override fun onStop() {
+//                super.onStop()
+//                stopMedia()
+//                NotificationUtil.removeNotification(applicationContext)
+//
+//            }
+//
+//            override fun onSeekTo(position: Long) {
+//                super.onSeekTo(position)
+//                seekTo(position)
+//            }
+//        })
     }
 
     private fun updateMetaData() {
@@ -473,8 +473,8 @@ class MediaPlayerService : Service(),
                 e.printStackTrace()
                 stopSelf()
             }
-            NotificationUtil.buildNotification(applicationContext, mediaSession,
-                activeAudio, PlaybackStatus.PLAYING)
+//            NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                activeAudio, PlaybackStatus.PLAYING)
         }
 
         // Handle Intent action from MediaSession.TransportControls
@@ -539,8 +539,8 @@ class MediaPlayerService : Service(),
         override fun onReceive(context: Context, intent: Intent) {
             //pause audio on ACTION_AUDIO_BECOMING_NOISY
             pauseMedia()
-            NotificationUtil.buildNotification(applicationContext, mediaSession,
-                activeAudio, PlaybackStatus.PAUSED)
+//            NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                activeAudio, PlaybackStatus.PAUSED)
         }
     }
 
@@ -601,8 +601,8 @@ class MediaPlayerService : Service(),
             mediaPlayer?.reset()
             initMediaPlayer()
             updateMetaData()
-            NotificationUtil.buildNotification(applicationContext, mediaSession,
-                activeAudio, PlaybackStatus.PLAYING)
+//            NotificationUtil.buildNotification(applicationContext, mediaSession,
+//                activeAudio, PlaybackStatus.PLAYING)
         }
     }
 

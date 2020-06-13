@@ -6,7 +6,6 @@ import android.media.AudioManager
 import android.os.Bundle
 import android.os.Handler
 import android.os.IBinder
-import android.support.v4.media.session.MediaSessionCompat
 import android.util.Log
 import androidx.appcompat.app.AppCompatActivity
 import androidx.core.app.ActivityCompat
@@ -16,6 +15,7 @@ import androidx.navigation.ui.AppBarConfiguration
 import androidx.navigation.ui.setupWithNavController
 import com.google.android.material.bottomnavigation.BottomNavigationView
 import com.jesusmoreira.materialmusic.R
+import com.jesusmoreira.materialmusic.databinding.ActivityMainBinding
 import com.jesusmoreira.materialmusic.models.*
 import com.jesusmoreira.materialmusic.services.PlayerBroadcast
 import com.jesusmoreira.materialmusic.ui.fragments.albums.AlbumListener
@@ -24,7 +24,6 @@ import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerFragment
 import com.jesusmoreira.materialmusic.ui.fragments.player.PlayerListener
 import com.jesusmoreira.materialmusic.ui.fragments.songs.SongListener
 import com.jesusmoreira.materialmusic.utils.*
-import kotlinx.android.synthetic.main.activity_player.*
 
 class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  SongListener, AlbumListener, ArtistListener {
 
@@ -43,8 +42,6 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
             }
     }
 
-    private var mediaSession: MediaSessionCompat? = null
-
     private var audioList: ArrayList<Audio> = arrayListOf()
     private var audioListBackup: ArrayList<Audio> = arrayListOf()
     private var audioIndex: Int = 0
@@ -56,48 +53,35 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
     private var playerFragment: PlayerFragment? = null
 
     private val playerBroadcast: PlayerBroadcast = object : PlayerBroadcast() {
-        override fun onActionPlayOrPause() {
-            if (onPlayOrPause()) {
-                playerFragment?.play()
-            } else {
-                playerFragment?.pause()
-            }
+        override fun onActionPlay() {
+            playerFragment?.play()
         }
 
-        override fun onActionPrevious() {
-            onSkipToPrevious()
+        override fun onActionPause() {
+            playerFragment?.pause()
         }
 
-        override fun onActionNext() {
-            onSkipToNext()
-        }
+        override fun onActionRefresh() {
+            restorePreferences()
 
-        override fun onCompletion() {
-            when(repeatMode) {
-                RepeatMode.NO_REPEAT -> {
-                    if (audioIndex + 1 < audioList.size) onSkipToNext()
-                    else {
-                        audioIndex = 0
-//                        onSeekTo(0)
-                        startPlayer(audioList, audioIndex, paused = true)
-                    }
-                }
-                RepeatMode.REPEAT_ALL -> {
-                    onSkipToNext()
-                }
-                RepeatMode.REPEAT_ONE -> {
-                    audioIndex--
-                    onSkipToNext()
-
-                }
-            }
+            refreshPlayer(
+                audioList,
+                audioIndex,
+                playerFragment?.isMinimized ?: false,
+                playerFragment?.isPaused ?: true,
+                shuffleMode,
+                repeatMode
+            )
         }
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        setContentView(R.layout.activity_main)
-        val navView: BottomNavigationView = findViewById(R.id.nav_view)
+//        setContentView(R.layout.activity_main)
+        val binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+
+        val navView: BottomNavigationView = binding.navView
 
         val navController = findNavController(R.id.nav_host_fragment)
         // Passing each menu ID as a set of Ids because each
@@ -110,7 +94,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
                 R.id.navigation_settings
             )
         )
-        setSupportActionBar(toolbar)
+        setSupportActionBar(binding.toolbar)
         supportActionBar?.title = getString(R.string.title_activity_main)
 //        setupActionBarWithNavController(navController, appBarConfiguration)
         navView.setupWithNavController(navController)
@@ -126,30 +110,23 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
 
         token = ServiceUtil.bindToService(this, this)
 
-        mediaSession = MediaSessionCompat(this@MainActivity, "MediaSession")
-        playerBroadcast.registerReceiver(this@MainActivity)
+        restorePreferences()
+    }
 
-        PreferenceUtil.apply {
-            audioList = StorageUtil.audioListFromString(getAudioList(this@MainActivity))
-            audioListBackup = StorageUtil.audioListFromString(getAudioListBackup(this@MainActivity))
-            audioIndex = getAudioIndex(this@MainActivity) ?: 0
-            shuffleMode = GeneralUtil.shuffleModeFromInt(getShuffleMode(this@MainActivity))
-            repeatMode = GeneralUtil.repeatModeFromInt(getRepeatMode(this@MainActivity))
-        }
+    override fun onResume() {
+        super.onResume()
+        playerBroadcast.registerReceiver(this@MainActivity)
+    }
+
+    override fun onPause() {
+        super.onPause()
+        playerBroadcast.unregisterReceiver(this@MainActivity)
     }
 
     override fun onDestroy() {
-        PreferenceUtil.apply {
-            setAudioList(this@MainActivity, StorageUtil.audioListToString(audioList))
-            setAudioListBackup(this@MainActivity, StorageUtil.audioListToString(audioListBackup))
-            setAudioIndex(this@MainActivity, audioIndex)
-            setShuffleMode(this@MainActivity, shuffleMode.value)
-            setRepeatMode(this@MainActivity, repeatMode.value)
-        }
-
+        savePreferences()
 
         NotificationUtil.removeNotification(this@MainActivity)
-        playerBroadcast.unregisterReceiver(this@MainActivity)
 
         PlaybackUtil.stop()
 
@@ -199,7 +176,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
     }
 
 
-    var doubleBackToExitPressedOnce = false
+    private var doubleBackToExitPressedOnce = false
 
     override fun onBackPressed() {
         if (playerFragment?.isMinimized == false) {
@@ -218,25 +195,35 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         }
     }
 
+    private fun savePreferences() {
+        PreferenceUtil.apply {
+            setAudioList(this@MainActivity, StorageUtil.audioListToString(audioList))
+            setAudioListBackup(this@MainActivity, StorageUtil.audioListToString(audioListBackup))
+            setAudioIndex(this@MainActivity, audioIndex)
+            setShuffleMode(this@MainActivity, shuffleMode.value)
+            setRepeatMode(this@MainActivity, repeatMode.value)
+        }
+    }
+
+    private fun restorePreferences() {
+        PreferenceUtil.apply {
+            audioList = StorageUtil.audioListFromString(getAudioList(this@MainActivity))
+            audioListBackup = StorageUtil.audioListFromString(getAudioListBackup(this@MainActivity))
+            audioIndex = getAudioIndex(this@MainActivity) ?: 0
+            shuffleMode = GeneralUtil.shuffleModeFromInt(getShuffleMode(this@MainActivity))
+            repeatMode = GeneralUtil.repeatModeFromInt(getRepeatMode(this@MainActivity))
+        }
+    }
+
     override fun onPlayOrPause(): Boolean {
         with(PlaybackUtil) {
             return if (isPlaying()) {
                 pause()
-                NotificationUtil.buildNotification(
-                    this@MainActivity,
-                    mediaSession,
-                    audioList[audioIndex],
-                    PlaybackStatus.PAUSED
-                )
+                playerFragment?.pause()
                 false
             } else {
                 play()
-                NotificationUtil.buildNotification(
-                    this@MainActivity,
-                    mediaSession,
-                    audioList[audioIndex],
-                    PlaybackStatus.PLAYING
-                )
+                playerFragment?.play()
                 true
             }
         }
@@ -282,10 +269,12 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
 
 //        startPlayer(audioList, audioIndex)
         playerFragment?.updatePlaylist(audioList, audioIndex)
+        savePreferences()
     }
 
     override fun onChangeRepeat(repeat: RepeatMode) {
         repeatMode = repeat
+        savePreferences()
     }
 
     override fun onSongClicked(audioList: ArrayList<Audio>, position: Int, preventShuffle: Boolean) {
@@ -317,17 +306,22 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         }
         PlaybackUtil.openFile(audioList[audioIndex].uri.toString())
 
+        savePreferences()
+        refreshPlayer(audioList, audioIndex, minimized, paused, shuffleMode, repeatMode)
+
         if (!paused) {
             PlaybackUtil.play()
         }
+    }
 
-        NotificationUtil.buildNotification(
-            this@MainActivity,
-            mediaSession,
-            audioList[audioIndex],
-            PlaybackStatus.PLAYING
-        )
-
+    private fun refreshPlayer(
+        audioList: ArrayList<Audio>,
+        audioIndex: Int,
+        minimized: Boolean,
+        paused: Boolean,
+        shuffleMode: ShuffleMode,
+        repeatMode: RepeatMode
+    ) {
         PlayerFragment.newInstance(
             audioList,
             audioIndex,

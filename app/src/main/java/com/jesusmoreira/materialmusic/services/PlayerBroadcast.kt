@@ -7,10 +7,9 @@ import android.content.IntentFilter
 
 abstract class PlayerBroadcast: BroadcastReceiver() {
     companion object {
-        const val ACTION_PLAY_OR_PAUSE: String = "PlayerBroadcast.ACTION_PLAY_OR_PAUSE"
-        const val ACTION_PREVIOUS: String = "PlayerBroadcast.ACTION_PREVIOUS"
-        const val ACTION_NEXT: String = "PlayerBroadcast.ACTION_NEXT"
-        const val ACTION_COMPLETION: String = "PlayerBroadcast.ACTION_COMPLETION"
+        const val ACTION_PLAY: String = "PlayerBroadcast.ACTION_PLAY"
+        const val ACTION_PAUSE: String = "PlayerBroadcast.ACTION_PAUSE"
+        const val ACTION_REFRESH: String = "PlayerBroadcast.ACTION_REFRESH"
     }
 
     var isRegistered = false
@@ -18,17 +17,14 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
     override fun onReceive(context: Context?, intent: Intent?) {
         if (intent?.action != null) {
             when {
-                intent.action.equals(ACTION_PLAY_OR_PAUSE) -> {
-                    onActionPlayOrPause()
+                intent.action.equals(ACTION_PLAY) -> {
+                    onActionPlay()
                 }
-                intent.action.equals(ACTION_PREVIOUS) -> {
-                    onActionPrevious()
+                intent.action.equals(ACTION_PAUSE) -> {
+                    onActionPause()
                 }
-                intent.action.equals(ACTION_NEXT) -> {
-                    onActionNext()
-                }
-                intent.action.equals(ACTION_COMPLETION) -> {
-                    onCompletion()
+                intent.action.equals(ACTION_REFRESH) -> {
+                    onActionRefresh()
                 }
             }
         }
@@ -36,10 +32,9 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
 
     fun registerReceiver(context: Context) {
         context.registerReceiver(this, IntentFilter().apply {
-            addAction(ACTION_PLAY_OR_PAUSE)
-            addAction(ACTION_PREVIOUS)
-            addAction(ACTION_NEXT)
-            addAction(ACTION_COMPLETION)
+            addAction(ACTION_PLAY)
+            addAction(ACTION_PAUSE)
+            addAction(ACTION_REFRESH)
         })
         isRegistered = true
     }
@@ -49,8 +44,7 @@ abstract class PlayerBroadcast: BroadcastReceiver() {
         isRegistered = false
     }
 
-    abstract fun onActionPlayOrPause()
-    abstract fun onActionPrevious()
-    abstract fun onActionNext()
-    abstract fun onCompletion()
+    abstract fun onActionPlay()
+    abstract fun onActionPause()
+    abstract fun onActionRefresh()
 }
