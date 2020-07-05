@@ -6,26 +6,29 @@ import android.util.Log
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
-import androidx.core.content.ContextCompat
 import androidx.fragment.app.Fragment
-import androidx.lifecycle.MutableLiveData
 import androidx.lifecycle.Observer
 import androidx.lifecycle.ViewModelProvider
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
 import com.jesusmoreira.materialmusic.adapters.FolderRecyclerViewAdapter
+import com.jesusmoreira.materialmusic.controllers.MediaController
+import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.models.Folder
+import com.jesusmoreira.materialmusic.ui.activities.MainActivity
 import kotlinx.android.synthetic.main.fragment_folder.view.*
 import java.io.File
 import java.io.FilenameFilter
 
-class FolderFragment : Fragment() {
+class FolderFragment : Fragment(), FolderListener {
 
     companion object {
         private const val TAG: String = "FolderFragment"
     }
 
     private lateinit var viewModel: FolderViewModel
+    private var folderAdapter: FolderRecyclerViewAdapter? = null
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -40,130 +43,65 @@ class FolderFragment : Fragment() {
     ): View? {
         val view = inflater.inflate(R.layout.fragment_folder, container, false)
 
-//        var storage: File? = null
-//        context?.let {
-//            storage = StorageUtil.getExternalStorage(it)
-//            storage = File(it.getExternalFilesDir(Environment.DIRECTORY_MUSIC), "/")
-
-//            val filepath =
-//                Environment.getExternalStorageDirectory().path
-//            val file = File("$filepath/AudioRecorder")
-//            val file = File("/")
-
-//            val sd = Environment.getExternalStorageDirectory()
-            //This will return an array with all the Files (directories and files)
-            //in the external storage folder
-            //This will return an array with all the Files (directories and files)
-            //in the external storage folder
-//            val sdDirList = sd.listFiles()
-
-//            val filterDirectoriesOnly =
-//                FileFilter { pathname -> pathname?.isDirectory ?: false }
-//            FileFilter() {
-//                fun accept(file: File): Boolean {
-//                    return file.isDirectory
-//                }
-//            }
-//            val sdDirectories: Array<File> = sd.listFiles(filterDirectoriesOnly)
-
-//            Log.d("FolderFragment", "$sdDirectories")
-//        }
-
-        viewModel.text.observe(viewLifecycleOwner, Observer {
-            view.text_folders.text = it
-        })
-
-        viewModel.text.postValue(path.absolutePath
-            .replace("/storage/emulated/0", "").let {
-                when (it) {
-                    "" -> "/"
-                    else -> it
-                }
-            }
-        )
-
-        var folderAdapter: FolderRecyclerViewAdapter? = null
-
-        val listener = View.OnClickListener { view ->
-            with(view.tag as String) {
-                Log.d(TAG, "tag: $this")
-                if (this != "..")
-                    pathList.add(this)
-                else {
-                    pathList.remove(pathList.last())
-                }
-            }
-
-            var route = ""
-            pathList.forEach {
-                route += "$it/"
-            }
-            path = File("${Environment.getExternalStorageDirectory()}/$route")
-            viewModel.text.postValue(path.absolutePath
-                .replace("/storage/emulated/0", "").let {
-                    when (it) {
-                        "" -> "/"
-                        else -> it
-                    }
-                }
-            )
-
-            loadFileList()?.let {
-                folderAdapter?.items = it.apply { if (pathList.isNotEmpty()) add(0, "..") }
-                folderAdapter?.notifyDataSetChanged()
-            }
-        }
-
-        folderAdapter = loadFileList()?.let {
-            FolderRecyclerViewAdapter(it.apply { if (pathList.isNotEmpty()) add(0, "..") }, listener)
-        }
+        folderAdapter = FolderRecyclerViewAdapter(Folder(), this)
 
         with(view?.listFolders as RecyclerView) {
             adapter = folderAdapter
             layoutManager = LinearLayoutManager(context)
         }
 
+        viewModel.folder.observe(viewLifecycleOwner, Observer {
+            folderAdapter?.folder = it
+            folderAdapter?.notifyDataSetChanged()
+
+            with(it.path.replace(Folder.DEFAULT_PATH, "")) {
+                view.text_folders.text = when (this) {
+                    "" -> "/"
+                    else -> this
+                }
+            }
+
+            with("${it.folderList.size} folders and ${it.fileList.size} files") {
+                view.info_folders.text = this
+            }
+        })
+
+        viewModel.folder.postValue(com.jesusmoreira.materialmusic.models.Folder())
+
         return view
     }
 
-    private var pathList: ArrayList<String> = arrayListOf()
-    private var fileList: Array<Item> = arrayOf()
-    private var path = File("${Environment.getExternalStorageDirectory()}")
+    override fun onClickFolder(folder: String) {
+        val pathList = viewModel.pathList.value
 
-    private fun loadFileList(): ArrayList<String>? {
-//        context?.let { path = File("${ContextCompat.getExternalFilesDirs(it, null)[0].absolutePath}/../../") }
-
-//        path = File("/")
-
-        Log.i(TAG, "path: ${path.absolutePath}")
-
-        try {
-            path.mkdirs()
-        } catch (e: SecurityException) {
-            Log.e(TAG, "unable to write on the sd card")
+        Log.d(TAG, "tag: $folder")
+        if (folder == "..") {
+            pathList?.remove(pathList.last())
+        } else {
+            pathList?.add(folder)
         }
 
-        // Checks whether path exists
-        if (path.exists()) {
-            val filter = FilenameFilter { dir, name ->
-                val sel = File(dir, name)
-                (sel.isFile || sel.isDirectory) && !sel.isHidden
-            }
-
-            val fList: Array<String> = path.list(filter) ?: arrayOf()
-
-            Log.i(TAG, "fList: ${fList.contentToString()}")
-
-            return ArrayList(fList.toList())
+        var route = ""
+        pathList?.forEach {
+            route += "$it/"
         }
 
-        return null
+        viewModel.pathList.postValue(pathList)
+
+        viewModel.folder.postValue(Folder("${Folder.DEFAULT_PATH}/$route"))
     }
 
-    private class Item(var file: String, var icon: Int) {
-        override fun toString(): String {
-            return file
+    override fun onClickFile(position: Int) {
+        context?.let { context ->
+            MediaController(context).apply {
+                viewModel.folder.value?.let {
+                    val musicList = getMusicListFromFolder(it)
+                    val musicIndex = musicList.indexOfFirst { item -> item.displayName == it.fileList[position]}
+                    if (activity is MainActivity) {
+                        (activity as MainActivity).onSongClicked(musicList, musicIndex)
+                    }
+                }
+            }
         }
-
     }
 }

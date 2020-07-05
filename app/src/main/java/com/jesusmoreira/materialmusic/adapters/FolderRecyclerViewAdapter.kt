@@ -3,45 +3,72 @@ package com.jesusmoreira.materialmusic.adapters
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
+import android.widget.ImageView
 import android.widget.TextView
 import androidx.recyclerview.widget.RecyclerView
 import com.jesusmoreira.materialmusic.R
+import com.jesusmoreira.materialmusic.models.Folder
+import com.jesusmoreira.materialmusic.ui.fragments.folder.FolderListener
 
 class FolderRecyclerViewAdapter(
-    var items: ArrayList<String>,
-    val listener: View.OnClickListener?
+    var folder: Folder,
+    val listener: FolderListener?
 ): RecyclerView.Adapter<FolderRecyclerViewAdapter.ViewHolder>() {
 
     private val onClickListener: View.OnClickListener
 
     init {
         onClickListener = View.OnClickListener { v ->
-//            val position = v.tag as Int
-            // Notify the active callbacks interface (the activity, if the fragment is attached to
-            // one) that an item has been selected.
-            listener?.onClick(v)
+            if (v.tag is String) {
+                listener?.onClickFolder(v.tag as String)
+            } else if (v.tag is Int) {
+                listener?.onClickFile(v.tag as Int)
+            }
         }
     }
 
     override fun onCreateViewHolder(parent: ViewGroup, viewType: Int): ViewHolder {
         val view = LayoutInflater.from(parent.context)
-            .inflate(android.R.layout.simple_list_item_1, parent, false)
+            .inflate(R.layout.item_list_folder, parent, false)
 
         return ViewHolder(view)
     }
 
-    override fun getItemCount(): Int = items.size
+    override fun getItemCount(): Int = folder.folderList.size + folder.fileList.size
 
     override fun onBindViewHolder(holder: ViewHolder, position: Int) {
-        holder.text1.text = items[position]
+        if (position == 0) {
+            holder.header.visibility = View.VISIBLE
+            holder.header.text = "Folders"
+        } else if (position >= folder.folderList.size && position - folder.folderList.size == 0) {
+            holder.header.visibility = View.VISIBLE
+            holder.header.text = "Files"
+        } else {
+            holder.header.visibility = View.GONE
+        }
+
+        holder.itemIcon.setImageResource(when {
+            position < folder.folderList.size -> R.drawable.ic_folder_black_24dp
+            else -> R.drawable.ic_audiotrack_white_24dp
+        })
+
+        holder.itemText.text = when {
+            position < folder.folderList.size -> folder.folderList[position]
+            else -> folder.fileList[position - folder.folderList.size]
+        }
 
         with(holder.view) {
-            tag = items[position]
+            tag = when {
+                position < folder.folderList.size -> folder.folderList[position]
+                else -> position - folder.folderList.size
+            }
             setOnClickListener(onClickListener)
         }
     }
 
     inner class ViewHolder(val view: View) : RecyclerView.ViewHolder(view) {
-        val text1: TextView = view.findViewById(android.R.id.text1)
+        val header: TextView = view.findViewById(R.id.header)
+        val itemIcon: ImageView = view.findViewById(R.id.item_icon)
+        val itemText: TextView = view.findViewById(R.id.item_text)
     }
 }

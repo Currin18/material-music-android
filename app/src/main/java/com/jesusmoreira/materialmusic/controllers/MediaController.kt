@@ -4,14 +4,17 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.MediaStore
+import android.util.Log
 import com.jesusmoreira.materialmusic.models.Album
 import com.jesusmoreira.materialmusic.models.Artist
 import com.jesusmoreira.materialmusic.models.Audio
+import com.jesusmoreira.materialmusic.models.Folder
 
 
 class MediaController(private val context: Context) {
 
     companion object {
+        private const val TAG = "MediaController"
         private const val SELECTION_AUDIO_IS_MUSIC = "${MediaStore.Audio.Media.IS_MUSIC} != 0"
 //            + " AND _data LIKE '%/Music/%'"
     }
@@ -108,6 +111,34 @@ class MediaController(private val context: Context) {
         return musicList
     }
 
+    fun getMusicListFromFolder(folder: Folder): ArrayList<Audio> {
+        val musicList = arrayListOf<Audio>()
+
+        var selection = SELECTION_AUDIO_IS_MUSIC // + " AND ${MediaStore.Audio.Media.DISPLAY_NAME} = ?"
+        folder.fileList.let { list ->
+            if (list.isNotEmpty()) {
+                selection += " AND ("
+                for (i in 0 until list.size) {
+                    if (i != 0) {
+                        selection += " OR "
+                    }
+                    selection += "${MediaStore.Audio.Media.DISPLAY_NAME} == ?" //'${list[i].replace("'","\'")}'"
+                }
+                selection += ")"
+            }
+        }
+
+        Log.d(TAG, "getMusicListFromFolder: $selection")
+
+        getAudioContent(selection = selection, selectionArgs = folder.fileList.toTypedArray()).use { cursor ->
+            while(cursor?.moveToNext() == true) {
+                musicList.add(Audio(cursor))
+            }
+        }
+
+        return musicList
+    }
+
     fun getAlbumListFromArtist(artist: Artist): ArrayList<Album> {
         val albumList = arrayListOf<Album>()
 
@@ -147,7 +178,3 @@ class MediaController(private val context: Context) {
         return artistList
     }
 }
-
-
-
-//android.database.sqlite.SQLiteException: unrecognized token: " (code 1 SQLITE_ERROR): , while compiling: SELECT title_key, instance_id, duration, is_ringtone, album_artist, orientation, artist, height, is_drm, bucket_display_name, is_audiobook, owner_package_name, volume_name, title_resource_uri, date_modified, date_expires, composer, _display_name, datetaken, mime_type, is_notification, _id, year, _data, _hash, _size, album, is_alarm, title, track, width, is_music, album_key, is_trashed, group_id, document_id, artist_id, artist_key, is_pending, date_added, is_podcast, album_id, primary_directory, secondary_directory, original_document_id, bucket_id, bookmark, relative_path FROM audio WHERE ((is_pending=0) AND (is_trashed=0) AND (volume_name IN ( 'external_primary' ))) AND (is_music != 0 AND artist_key ==) ORDER BY title_key
