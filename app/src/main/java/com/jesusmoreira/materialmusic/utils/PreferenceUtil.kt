@@ -2,7 +2,6 @@ package com.jesusmoreira.materialmusic.utils
 
 import android.content.Context
 import android.content.SharedPreferences
-import com.jesusmoreira.materialmusic.models.Audio
 
 object PreferenceUtil {
     private const val PREFERENCE = "PreferenceUtil.PREFERENCE"
@@ -10,6 +9,7 @@ object PreferenceUtil {
     private const val PREFERENCE_AUDIO_LIST = "$PREFERENCE.PREFERENCE_AUDIO_LIST"
     private const val PREFERENCE_AUDIO_LIST_BACKUP = "$PREFERENCE.PREFERENCE_AUDIO_LIST_BACKUP"
     private const val PREFERENCE_AUDIO_INDEX = "$PREFERENCE.PREFERENCE_AUDIO_INDEX"
+    private const val PREFERENCE_AUDIO_PROGRESSION = "$PREFERENCE.PREFERENCE_AUDIO_PROGRESSION"
     private const val PREFERENCE_SHUFFLE_MODE = "$PREFERENCE.PREFERENCE_SHUFFLE_MODE"
     private const val PREFERENCE_REPEAT_MODE = "$PREFERENCE.PREFERENCE_REPEAT_MODE"
 
@@ -48,6 +48,22 @@ object PreferenceUtil {
         }
     }
 
+    private fun getLong(context: Context, key: String): Long? {
+        return getPreferences(context).getLong(key, -1L).let {
+            when {
+                it < 0L -> null
+                else -> it
+            }
+        }
+    }
+
+    private fun putLong(context: Context, key: String, value: Long): Boolean {
+        return getEditor(context).let { editor ->
+            editor.putLong(key, value)
+            editor.commit()
+        }
+    }
+
     fun getAudioList(context: Context) = getString(context, PREFERENCE_AUDIO_LIST)
     fun setAudioList(context: Context, value: String) =
         putString(context, PREFERENCE_AUDIO_LIST, value)
@@ -59,6 +75,10 @@ object PreferenceUtil {
     fun getAudioIndex(context: Context) = getInt(context, PREFERENCE_AUDIO_INDEX)
     fun setAudioIndex(context: Context, value: Int) =
         putInt(context, PREFERENCE_AUDIO_INDEX, value)
+
+    fun getAudioProgress(context: Context) = getLong(context, PREFERENCE_AUDIO_PROGRESSION)
+    fun setAudioProgress(context: Context, value: Long) =
+        putLong(context, PREFERENCE_AUDIO_PROGRESSION, value)
 
     fun getShuffleMode(context: Context) = getInt(context, PREFERENCE_SHUFFLE_MODE)
     fun setShuffleMode(context: Context, value: Int) =

@@ -140,10 +140,15 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
 
     override fun onServiceConnected(name: ComponentName?, service: IBinder?) {
         Log.i(TAG, "Service connected: $name")
-        if (audioList.isNotEmpty()) startPlayer(audioList, audioIndex,
-            minimized = true,
-            paused = true
-        )
+        if (audioList.isNotEmpty()) {
+            startPlayer(
+                audioList,
+                audioIndex,
+                progress = PreferenceUtil.getAudioProgress(this@MainActivity)?.toInt() ?: 0,
+                minimized = true,
+                paused = true
+            )
+        }
     }
 
     override fun onServiceDisconnected(name: ComponentName?) {
@@ -154,6 +159,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         super.onRequestPermissionsResult(requestCode, permissions, grantResults)
 
         if (grantResults[0] == PackageManager.PERMISSION_GRANTED) {
+            startActivity(newIntent(this@MainActivity, arrayListOf(), 0))
         } else {
             GeneralUtil.longToast(this, "Permission not granted. Shutting down.")
             finish()
@@ -165,11 +171,14 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
             when (requestCode) {
                 AUDIO_LIST_REQUEST -> {
                     data?.extras?.apply {
-                        audioList = StorageUtil.audioListFromString(getString(ARG_AUDIO_LIST))
-                        audioIndex = getInt(ARG_INDEX)
-                    }
-                    if (!audioList.isNullOrEmpty()) {
-                        onSongClicked(audioList, audioIndex)
+                        if (containsKey(ARG_AUDIO_LIST) && containsKey(ARG_INDEX)) {
+                            audioList = StorageUtil.audioListFromString(getString(ARG_AUDIO_LIST))
+                            audioIndex = getInt(ARG_INDEX)
+
+                            if (!audioList.isNullOrEmpty()) {
+                                onSongClicked(audioList, audioIndex)
+                            }
+                        }
                     }
                 }
             }
@@ -297,7 +306,7 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
         startActivityForResult(ArtistDetailActivity.newIntent(applicationContext, artist), AUDIO_LIST_REQUEST)
     }
 
-    private fun startPlayer(list: ArrayList<Audio>, position: Int, minimized: Boolean = false, paused: Boolean = false) {
+    private fun startPlayer(list: ArrayList<Audio>, position: Int, progress: Int = 0, minimized: Boolean = false, paused: Boolean = false) {
         audioList = list
         audioIndex = position
 
@@ -305,6 +314,9 @@ class MainActivity : AppCompatActivity(), ServiceConnection, PlayerListener,  So
             PlaybackUtil.stop()
         }
         PlaybackUtil.openFile(audioList[audioIndex].uri.toString())
+
+        if (progress > 0)
+            PlaybackUtil.seek(progress.toLong())
 
         savePreferences()
         refreshPlayer(audioList, audioIndex, minimized, paused, shuffleMode, repeatMode)

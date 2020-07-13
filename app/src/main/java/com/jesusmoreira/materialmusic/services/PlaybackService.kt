@@ -86,7 +86,25 @@ class PlaybackService: Service() {
 
         audioManager = getSystemService(Context.AUDIO_SERVICE) as AudioManager
 
+//        val mMediaSessionCallback: MediaSessionCompat.Callback =
+//            object : MediaSessionCompat.Callback() {
+//                override fun onPlay() {
+//                    super.onPlay()
+//                    play()
+//                }
+//
+//                override fun onPause() {
+//                    super.onPause()
+//                    pause()
+//                }
+//
+//                override fun onPlayFromMediaId(mediaId: String, extras: Bundle) {
+//                    super.onPlayFromMediaId(mediaId, extras)
+//                }
+//            }
+
         mediaSession = MediaSessionCompat(this@PlaybackService, "MediaSession")
+//        mediaSession?.setCallback(mMediaSessionCallback)
 
         Log.i(TAG, "MediaPlayback class instantiated")
         mediaPlayback = MediaPlayback()
@@ -233,7 +251,7 @@ class PlaybackService: Service() {
 
         val audioList = StorageUtil.audioListFromString(PreferenceUtil.getAudioList(this@PlaybackService))
         var audioIndex = PreferenceUtil.getAudioIndex(this@PlaybackService) ?: 0
-        val shuffleMode = GeneralUtil.shuffleModeFromInt(PreferenceUtil.getShuffleMode(this@PlaybackService))
+//        val shuffleMode = GeneralUtil.shuffleModeFromInt(PreferenceUtil.getShuffleMode(this@PlaybackService))
         var paused = false
 
         audioIndex = when(GeneralUtil.repeatModeFromInt(PreferenceUtil.getRepeatMode(this@PlaybackService))) {
@@ -352,6 +370,7 @@ class PlaybackService: Service() {
         }
 
         fun stop() {
+            PreferenceUtil.setAudioProgress(this@PlaybackService, getPosition())
             player?.reset()
             isPlayerInitialized = false
             isSupposedToBePlaying = false
